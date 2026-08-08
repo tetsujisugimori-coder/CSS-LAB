@@ -14,13 +14,14 @@ export interface LabInfo {
 export interface BorderRadiusState {
   isUniform: boolean;
   uniform: number;
+  all?: number;
   topLeft: number;
   topRight: number;
   bottomRight: number;
   bottomLeft: number;
   unit: 'px' | '%';
-  showCornerGuides: boolean;
-  previewBg: 'gradient' | 'solid' | 'glass' | 'pattern';
+  showCornerGuides?: boolean;
+  previewBg?: 'gradient' | 'solid' | 'glass' | 'pattern';
 }
 
 // 2. Box Shadow State
@@ -28,12 +29,17 @@ export interface BoxShadowState {
   offsetX: number;
   offsetY: number;
   blur: number;
+  blurRadius?: number;
   spread: number;
+  spreadRadius?: number;
   color: string;
+  shadowColor?: string;
   opacity: number;
+  shadowOpacity?: number;
   inset: boolean;
-  showLightRay: boolean;
-  previewCardType: 'card' | 'button' | 'avatar' | 'badge';
+  isInset?: boolean;
+  showLightRay?: boolean;
+  previewCardType?: 'card' | 'button' | 'avatar' | 'badge';
   secondaryShadowEnabled?: boolean;
 }
 
@@ -49,8 +55,10 @@ export interface TransformState {
   skewX: number; // deg
   skewY: number; // deg
   origin: string; // 'center' | 'top left' | etc.
-  showGhostOutline: boolean;
-  showGrid: boolean;
+  originX?: number; // %
+  originY?: number; // %
+  showGhostOutline?: boolean;
+  showGrid?: boolean;
 }
 
 // 4. Filter State

@@ -15,10 +15,19 @@ import { CodePanel } from '../common/CodePanel';
 import { PresetButtons } from '../common/PresetButtons';
 import { PreviewPositionToolbar } from '../common/PreviewPositionToolbar';
 import { PropertyExplanationCard, BreakdownItem } from '../common/PropertyExplanationCard';
+import { 
+  generateBorderRadiusCss, 
+  generateBorderRadiusInline, 
+  generateBorderRadiusTailwind,
+  generateBorderRadiusValue 
+} from '../../utils/cssGenerators';
+import { useTheme } from '../../context/ThemeContext';
+import { getUIStyleClasses } from '../../utils/uiStyles';
 
 const INITIAL_STATE: BorderRadiusState = {
   isUniform: true,
   uniform: 24,
+  all: 24,
   topLeft: 24,
   topRight: 24,
   bottomRight: 24,
@@ -34,49 +43,49 @@ const PRESETS: Preset<BorderRadiusState>[] = [
     name: '0px (完全な四角)',
     description: '角丸なし。硬質でシャープなカードデザイン',
     previewColor: '#64748b',
-    state: { isUniform: true, uniform: 0, topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0 },
+    state: { isUniform: true, uniform: 0, all: 0, topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0, unit: 'px' },
   },
   {
     id: 'modern-card',
     name: '12px (標準UIカード)',
     description: 'Web標準のすっきりしたモダンなUIカード',
     previewColor: '#38bdf8',
-    state: { isUniform: true, uniform: 12, topLeft: 12, topRight: 12, bottomRight: 12, bottomLeft: 12 },
+    state: { isUniform: true, uniform: 12, all: 12, topLeft: 12, topRight: 12, bottomRight: 12, bottomLeft: 12, unit: 'px' },
   },
   {
     id: 'soft-card',
     name: '24px (柔らかい角丸)',
     description: '親しみやすく柔らかい印象を与えるUI',
     previewColor: '#818cf8',
-    state: { isUniform: true, uniform: 24, topLeft: 24, topRight: 24, bottomRight: 24, bottomLeft: 24 },
+    state: { isUniform: true, uniform: 24, all: 24, topLeft: 24, topRight: 24, bottomRight: 24, bottomLeft: 24, unit: 'px' },
   },
   {
     id: 'circle',
     name: '50% (正円・アバター)',
     description: '正方形の要素に50%を指定すると綺麗な円になります（長方形に使うと楕円になります）',
     previewColor: '#ec4899',
-    state: { isUniform: true, uniform: 50, topLeft: 50, topRight: 50, bottomRight: 50, bottomLeft: 50, unit: '%' },
+    state: { isUniform: true, uniform: 50, all: 50, topLeft: 50, topRight: 50, bottomRight: 50, bottomLeft: 50, unit: '%' },
   },
   {
     id: 'pill',
     name: '9999px (ピル・カプセル型)',
     description: '長方形ボタンでも楕円にならず、両端が完全な半円になるプロの黄金テクニック',
     previewColor: '#10b981',
-    state: { isUniform: true, uniform: 9999, topLeft: 9999, topRight: 9999, bottomRight: 9999, bottomLeft: 9999, unit: 'px' },
+    state: { isUniform: true, uniform: 9999, all: 9999, topLeft: 9999, topRight: 9999, bottomRight: 9999, bottomLeft: 9999, unit: 'px' },
   },
   {
     id: 'leaf',
     name: 'Leaf (葉っぱ型)',
     description: '対角の角だけを丸めたアシンメトリーなオーガニック形状',
     previewColor: '#10b981',
-    state: { isUniform: false, topLeft: 48, topRight: 0, bottomRight: 48, bottomLeft: 0, unit: 'px' },
+    state: { isUniform: false, uniform: 48, all: 48, topLeft: 48, topRight: 0, bottomRight: 48, bottomLeft: 0, unit: 'px' },
   },
   {
     id: 'organic-blob',
     name: 'Organic (水滴・スライム)',
     description: '4つの角の値をすべて変えて自然な有機的シェイプを表現',
     previewColor: '#f59e0b',
-    state: { isUniform: false, topLeft: 70, topRight: 30, bottomRight: 65, bottomLeft: 20, unit: 'px' },
+    state: { isUniform: false, uniform: 70, all: 70, topLeft: 70, topRight: 30, bottomRight: 65, bottomLeft: 20, unit: 'px' },
   },
 ];
 
@@ -115,11 +124,14 @@ const BREAKDOWN: BreakdownItem[] = [
 
 const TIPS = [
   '【50% と 9999px の決定的な違い】: 正方形（1:1）なら「50%」で美しい円になりますが、横長ボタンに「50%」を指定すると横幅の50%も丸めようとして「潰れた楕円」になってしまいます。横長ボタンを半円両端にするには「9999px」または「rounded-full」を指定するのがWeb標準のプロの技です。',
-  '入れ子の要素（外側カードの中に内側バッジがある場合）の角丸は、「内側の角丸 ＝ 外側の角丸 - padding（余白）」に設定すると、角の隙間が均一で美しい幾何学的調和が生まれます。',
+  '【入れ子の計算式】: 外側カードの中に内側要素がある場合、「内側の角丸 ＝ 外側の角丸 - padding（余白）」に設定すると、角の隙間が均一で美しい幾何学的調和が生まれます。',
+  '【子要素のはみ出し防止】: 角丸を設定した親要素の中で画像やヘッダーが角からはみ出る場合は、親要素に overflow: hidden; を指定して角丸に合わせて切り抜きます。',
   'チャットの吹き出しUIを作る際は、片方の角（例えば右下）だけを 0px に設定することで、発言者のしっぽ（Pointer）をCSSだけで表現できます。',
 ];
 
 export const BorderRadiusLab: React.FC = () => {
+  const { uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle);
   const [state, setState] = useState<BorderRadiusState>(INITIAL_STATE);
   const [highlightedProp, setHighlightedProp] = useState<string | undefined>();
   const [activePreset, setActivePreset] = useState<string>('soft-card');
@@ -127,33 +139,18 @@ export const BorderRadiusLab: React.FC = () => {
   const [layout, setLayout] = useState<'side' | 'top' | 'bottom'>('side');
   const [isSticky, setIsSticky] = useState<boolean>(true);
 
-  // Compute CSS String
-  const unit = state.unit;
-  let borderRadiusCss = '';
-  let inlineCss = '';
-  let tailwindClass = '';
-
-  if (state.isUniform) {
-    const val = state.uniform >= 999 ? '9999px' : `${state.uniform}${unit}`;
-    borderRadiusCss = `.demo {\n  border-radius: ${val};\n}`;
-    inlineCss = `style="border-radius: ${val};"`;
-    tailwindClass = state.uniform === 0 ? 'rounded-none' : state.uniform <= 8 ? 'rounded-md' : state.uniform <= 16 ? 'rounded-xl' : state.uniform <= 32 ? 'rounded-2xl' : state.uniform >= 999 ? 'rounded-full' : 'rounded-[...]';
-  } else {
-    const tl = `${state.topLeft}${unit}`;
-    const tr = `${state.topRight}${unit}`;
-    const br = `${state.bottomRight}${unit}`;
-    const bl = `${state.bottomLeft}${unit}`;
-    borderRadiusCss = `.demo {\n  /* 左上 右上 右下 左下 の時計回り順 */\n  border-radius: ${tl} ${tr} ${br} ${bl};\n}`;
-    inlineCss = `style="border-radius: ${tl} ${tr} ${br} ${bl};"`;
-    tailwindClass = `rounded-tl-[${tl}] rounded-tr-[${tr}] rounded-br-[${br}] rounded-bl-[${bl}]`;
-  }
+  // Pure functions for CSS & Tailwind string generation
+  const normalizedState = {
+    ...state,
+    all: state.isUniform ? state.uniform : state.all,
+  };
+  const borderRadiusCss = generateBorderRadiusCss(normalizedState);
+  const inlineCss = generateBorderRadiusInline(normalizedState);
+  const tailwindClass = generateBorderRadiusTailwind(normalizedState);
 
   // Get raw CSS style value for the preview element
   const getPreviewRadiusStyle = () => {
-    if (state.isUniform) {
-      return state.uniform >= 999 ? '9999px' : `${state.uniform}${unit}`;
-    }
-    return `${state.topLeft}${unit} ${state.topRight}${unit} ${state.bottomRight}${unit} ${state.bottomLeft}${unit}`;
+    return generateBorderRadiusValue(normalizedState);
   };
 
   const handleApplyPreset = (presetState: Partial<BorderRadiusState>) => {
@@ -165,9 +162,14 @@ export const BorderRadiusLab: React.FC = () => {
     setActivePreset('soft-card');
   };
 
+  const updateStateValue = (updater: (prev: BorderRadiusState) => BorderRadiusState) => {
+    setState(updater);
+    setActivePreset('custom');
+  };
+
   const renderControlPanel = () => (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+    <div className={`${uiClasses.card} p-4 sm:p-5 space-y-4`}>
+      <div className={`flex items-center justify-between ${uiClasses.header} flex-wrap gap-2`}>
         <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
           パラメータ操作
         </span>
@@ -176,7 +178,7 @@ export const BorderRadiusLab: React.FC = () => {
         <div className="flex items-center gap-1 bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-800 text-[11px] font-mono">
           <span className="text-slate-500 text-[10px] mr-1">単位:</span>
           <button
-            onClick={() => setState((prev) => ({ ...prev, unit: 'px' }))}
+            onClick={() => updateStateValue((prev) => ({ ...prev, unit: 'px' }))}
             className={`px-1.5 py-0.5 rounded transition cursor-pointer ${
               state.unit === 'px' ? 'bg-sky-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
             }`}
@@ -184,7 +186,7 @@ export const BorderRadiusLab: React.FC = () => {
             px
           </button>
           <button
-            onClick={() => setState((prev) => ({ ...prev, unit: '%' }))}
+            onClick={() => updateStateValue((prev) => ({ ...prev, unit: '%' }))}
             className={`px-1.5 py-0.5 rounded transition cursor-pointer ${
               state.unit === '%' ? 'bg-sky-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
             }`}
@@ -206,9 +208,10 @@ export const BorderRadiusLab: React.FC = () => {
             step={1}
             unit={state.unit}
             onChange={(val) =>
-              setState((prev) => ({
+              updateStateValue((prev) => ({
                 ...prev,
                 uniform: val,
+                all: val,
                 topLeft: val,
                 topRight: val,
                 bottomRight: val,
@@ -250,11 +253,12 @@ export const BorderRadiusLab: React.FC = () => {
               <button
                 type="button"
                 onClick={() =>
-                  setState((prev) => {
+                  updateStateValue((prev) => {
                     const nextVal = prev.uniform >= 999 ? 24 : 9999;
                     return {
                       ...prev,
                       uniform: nextVal,
+                      all: nextVal,
                       topLeft: nextVal,
                       topRight: nextVal,
                       bottomRight: nextVal,
@@ -301,7 +305,7 @@ export const BorderRadiusLab: React.FC = () => {
               min={0}
               max={state.unit === '%' ? 50 : 100}
               unit={state.unit}
-              onChange={(val) => setState((prev) => ({ ...prev, topLeft: val }))}
+              onChange={(val) => updateStateValue((prev) => ({ ...prev, topLeft: val }))}
               onHoverToken={setHighlightedProp}
               isHighlighted={highlightedProp === 'top-left'}
             />
@@ -312,7 +316,7 @@ export const BorderRadiusLab: React.FC = () => {
               min={0}
               max={state.unit === '%' ? 50 : 100}
               unit={state.unit}
-              onChange={(val) => setState((prev) => ({ ...prev, topRight: val }))}
+              onChange={(val) => updateStateValue((prev) => ({ ...prev, topRight: val }))}
               onHoverToken={setHighlightedProp}
               isHighlighted={highlightedProp === 'top-right'}
             />
@@ -323,7 +327,7 @@ export const BorderRadiusLab: React.FC = () => {
               min={0}
               max={state.unit === '%' ? 50 : 100}
               unit={state.unit}
-              onChange={(val) => setState((prev) => ({ ...prev, bottomLeft: val }))}
+              onChange={(val) => updateStateValue((prev) => ({ ...prev, bottomLeft: val }))}
               onHoverToken={setHighlightedProp}
               isHighlighted={highlightedProp === 'bottom-left'}
             />
@@ -334,7 +338,7 @@ export const BorderRadiusLab: React.FC = () => {
               min={0}
               max={state.unit === '%' ? 50 : 100}
               unit={state.unit}
-              onChange={(val) => setState((prev) => ({ ...prev, bottomRight: val }))}
+              onChange={(val) => updateStateValue((prev) => ({ ...prev, bottomRight: val }))}
               onHoverToken={setHighlightedProp}
               isHighlighted={highlightedProp === 'bottom-right'}
             />
@@ -366,9 +370,9 @@ export const BorderRadiusLab: React.FC = () => {
   );
 
   const renderPreviewStage = () => (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 flex flex-col justify-between min-h-[460px]">
+    <div className={`${uiClasses.card} p-4 sm:p-6 space-y-4 flex flex-col justify-between min-h-[460px]`}>
       {/* Preview Toolbar */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+      <div className={`flex items-center justify-between ${uiClasses.header} flex-wrap gap-2`}>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span className="text-xs font-bold text-slate-200">
@@ -478,16 +482,16 @@ export const BorderRadiusLab: React.FC = () => {
           {state.showCornerGuides && (
             <>
               <span className="absolute top-1 left-2 text-[9px] font-mono text-sky-300 bg-slate-950/80 px-1 rounded border border-sky-800/60">
-                TL: {state.isUniform ? state.uniform : state.topLeft}{unit}
+                TL: {state.isUniform ? state.uniform : state.topLeft}{state.unit}
               </span>
               <span className="absolute top-1 right-2 text-[9px] font-mono text-sky-300 bg-slate-950/80 px-1 rounded border border-sky-800/60">
-                TR: {state.isUniform ? state.uniform : state.topRight}{unit}
+                TR: {state.isUniform ? state.uniform : state.topRight}{state.unit}
               </span>
               <span className="absolute bottom-1 left-2 text-[9px] font-mono text-sky-300 bg-slate-950/80 px-1 rounded border border-sky-800/60">
-                BL: {state.isUniform ? state.uniform : state.bottomLeft}{unit}
+                BL: {state.isUniform ? state.uniform : state.bottomLeft}{state.unit}
               </span>
               <span className="absolute bottom-1 right-2 text-[9px] font-mono text-sky-300 bg-slate-950/80 px-1 rounded border border-sky-800/60">
-                BR: {state.isUniform ? state.uniform : state.bottomRight}{unit}
+                BR: {state.isUniform ? state.uniform : state.bottomRight}{state.unit}
               </span>
             </>
           )}

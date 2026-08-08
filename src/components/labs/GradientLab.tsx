@@ -18,8 +18,16 @@ import { GradientState, GradientType, ColorStop, Preset } from '../../types';
 import { SliderControl } from '../common/SliderControl';
 import { CodePanel } from '../common/CodePanel';
 import { PresetButtons } from '../common/PresetButtons';
-import { PreviewPositionToolbar } from '../common/PreviewPositionToolbar';
+import { PreviewPositionToolbar, PreviewLayout } from '../common/PreviewPositionToolbar';
 import { PropertyExplanationCard, BreakdownItem } from '../common/PropertyExplanationCard';
+import { 
+  generateGradientCss, 
+  generateGradientInline, 
+  generateGradientTailwind, 
+  generateGradientValue 
+} from '../../utils/cssGenerators';
+import { useTheme } from '../../context/ThemeContext';
+import { getUIStyleClasses } from '../../utils/uiStyles';
 
 const INITIAL_STOPS: ColorStop[] = [
   { id: '1', color: '#38bdf8', stop: 0 },
@@ -164,33 +172,28 @@ const TIPS = [
   '角度の目安: Webデザインで自然に見える斜めグラデーションは「135deg（左上から右下）」または「120deg」が黄金比率です。',
   'グラデーション文字を作るには: background: linear-gradient(...); -webkit-background-clip: text; -webkit-text-fill-color: transparent; を組み合わせます。',
   'カラーストップを同じ位置（例: #fff 50%, #000 50%）に設定すると、グラデーションではなくシャープな2色ツートーン背景を作成できます。',
+  '【スクロール追従】横並びレイアウト時はプレビュー画面がSticky（追従固定）されるため、長尺の設定項目をスクロールしながらもリアルタイムに変化を確認できます。',
 ];
 
 export const GradientLab: React.FC = () => {
+  const { uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle);
   const [state, setState] = useState<GradientState>(INITIAL_STATE);
   const [highlightedProp, setHighlightedProp] = useState<string | undefined>();
   const [activePreset, setActivePreset] = useState<string>('sunset');
-  const [layout, setLayout] = useState<'side' | 'top' | 'bottom'>('side');
+  const [layout, setLayout] = useState<PreviewLayout>('side');
   const [isSticky, setIsSticky] = useState<boolean>(true);
 
-  // Build the Gradient CSS string
-  const sortedStops = [...state.stops].sort((a, b) => a.stop - b.stop);
-  const stopsString = sortedStops
-    .map((s) => `${s.color} ${s.stop}%`)
-    .join(', ');
+  // Pure functions for CSS & Tailwind string generation
+  const gradientValue = generateGradientValue(state);
+  const cssRules = generateGradientCss(state);
+  const inlineCss = generateGradientInline(state);
+  const tailwindTip = generateGradientTailwind(state);
 
-  let gradientValue = '';
-  if (state.type === 'linear') {
-    gradientValue = `linear-gradient(${state.angle}deg, ${stopsString})`;
-  } else if (state.type === 'radial') {
-    gradientValue = `radial-gradient(${state.radialShape} at ${state.radialPosition}, ${stopsString})`;
-  } else if (state.type === 'conic') {
-    gradientValue = `conic-gradient(from ${state.conicAngle}deg ${state.conicPosition}, ${stopsString})`;
-  }
-
-  const cssRules = `.demo {\n  background: ${gradientValue};\n}`;
-  const inlineCss = `style="background: ${gradientValue};"`;
-  const tailwindTip = state.type === 'linear' ? 'bg-gradient-to-br from-sky-400 via-indigo-500 to-purple-500' : 'bg-[radial-gradient(...)]';
+  const updateStateValue = (updater: (prev: GradientState) => GradientState) => {
+    setState(updater);
+    setActivePreset('custom');
+  };
 
   // Add a new color stop
   const handleAddStop = () => {
@@ -201,20 +204,32 @@ export const GradientLab: React.FC = () => {
       color: '#f43f5e',
       stop: Math.min(100, (state.stops[state.stops.length - 1]?.stop || 50) + 15),
     };
-    setState((prev) => ({ ...prev, stops: [...prev.stops, newStop] }));
+    updateStateValue((prev) => ({ ...prev, stops: [...prev.stops, newStop] }));
   };
 
   // Remove a color stop
   const handleRemoveStop = (id: string) => {
     if (state.stops.length <= 2) return; // Keep at least 2 stops
-    setState((prev) => ({ ...prev, stops: prev.stops.filter((s) => s.id !== id) }));
+    updateStateValue((prev) => ({ ...prev, stops: prev.stops.filter((s) => s.id !== id) }));
   };
 
-  // Update a single color stop
+  // Update a single color stop with color sanitization
   const handleUpdateStop = (id: string, updates: Partial<ColorStop>) => {
-    setState((prev) => ({
+    updateStateValue((prev) => ({
       ...prev,
-      stops: prev.stops.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+      stops: prev.stops.map((s) => {
+        if (s.id !== id) return s;
+        let color = updates.color !== undefined ? updates.color : s.color;
+        // Basic hex sanitization for color input
+        if (updates.color && !updates.color.startsWith('#') && /^[0-9A-Fa-f]{3,6}$/.test(updates.color)) {
+          color = `#${updates.color}`;
+        }
+        return {
+          ...s,
+          ...updates,
+          color,
+        };
+      }),
     }));
   };
 
@@ -228,12 +243,12 @@ export const GradientLab: React.FC = () => {
   };
 
   const renderControlPanel = () => (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+    <div className={`${uiClasses.card} p-4 sm:p-5 space-y-4`}>
+      <div className={`flex items-center justify-between ${uiClasses.header}`}>
         <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
           {state.type.toUpperCase()} パラメータ設定
         </span>
-        <span className="text-[11px] font-mono text-sky-400 bg-sky-950 px-2 py-0.5 rounded border border-sky-900/60">
+        <span className={`text-[11px] px-2 py-0.5 ${uiClasses.badge}`}>
           {state.stops.length} 色ブレンド
         </span>
       </div>
@@ -248,7 +263,7 @@ export const GradientLab: React.FC = () => {
           max={360}
           step={5}
           unit="deg"
-          onChange={(val) => setState((prev) => ({ ...prev, angle: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, angle: val }))}
           description="0deg = 下から上、90deg = 左から右、135deg = 左上から右下の斜め（黄金比率）。"
           quickValues={[0, 45, 90, 135, 180, 270]}
           onHoverToken={setHighlightedProp}
@@ -266,7 +281,7 @@ export const GradientLab: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => setState((prev) => ({ ...prev, radialShape: 'circle' }))}
+              onClick={() => updateStateValue((prev) => ({ ...prev, radialShape: 'circle' }))}
               className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 state.radialShape === 'circle' ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
@@ -274,7 +289,7 @@ export const GradientLab: React.FC = () => {
               Circle (正円)
             </button>
             <button
-              onClick={() => setState((prev) => ({ ...prev, radialShape: 'ellipse' }))}
+              onClick={() => updateStateValue((prev) => ({ ...prev, radialShape: 'ellipse' }))}
               className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 state.radialShape === 'ellipse' ? 'bg-sky-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
@@ -294,7 +309,7 @@ export const GradientLab: React.FC = () => {
           max={360}
           step={5}
           unit="deg"
-          onChange={(val) => setState((prev) => ({ ...prev, conicAngle: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, conicAngle: val }))}
           description="円錐グラデーションの開始角度（時計回り）。"
           quickValues={[0, 45, 90, 180, 270]}
           onHoverToken={setHighlightedProp}
@@ -334,7 +349,7 @@ export const GradientLab: React.FC = () => {
                 </span>
                 <input
                   type="color"
-                  value={st.color}
+                  value={st.color.startsWith('#') ? st.color : '#38bdf8'}
                   onChange={(e) => handleUpdateStop(st.id, { color: e.target.value })}
                   className="w-7 h-7 rounded bg-transparent cursor-pointer border border-slate-700"
                 />
@@ -342,7 +357,8 @@ export const GradientLab: React.FC = () => {
                   type="text"
                   value={st.color}
                   onChange={(e) => handleUpdateStop(st.id, { color: e.target.value })}
-                  className="w-18 px-1.5 py-0.5 text-xs font-mono bg-slate-900 border border-slate-700 rounded text-slate-200"
+                  className="w-20 px-1.5 py-0.5 text-xs font-mono bg-slate-900 border border-slate-700 rounded text-slate-200"
+                  placeholder="#ffffff"
                 />
               </div>
 
@@ -352,8 +368,8 @@ export const GradientLab: React.FC = () => {
                   min={0}
                   max={100}
                   value={st.stop}
-                  onChange={(e) => handleUpdateStop(st.id, { stop: parseInt(e.target.value) })}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                  onChange={(e) => handleUpdateStop(st.id, { stop: parseInt(e.target.value, 10) || 0 })}
+                  className="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer accent-sky-500"
                 />
                 <span className="text-[11px] font-mono text-sky-300 w-8 text-right">
                   {st.stop}%
@@ -377,9 +393,9 @@ export const GradientLab: React.FC = () => {
   );
 
   const renderPreviewStage = () => (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 flex flex-col justify-between min-h-[480px]">
+    <div className={`${uiClasses.card} p-4 sm:p-6 space-y-4 flex flex-col justify-between min-h-[480px]`}>
       {/* Stage Toolbar with Target Switcher */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+      <div className={`flex items-center justify-between ${uiClasses.header} flex-wrap gap-2`}>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span className="text-xs font-bold text-slate-200">
@@ -400,7 +416,7 @@ export const GradientLab: React.FC = () => {
           {/* Preview Target Switcher */}
           <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
             <button
-              onClick={() => setState((prev) => ({ ...prev, previewTarget: 'canvas' }))}
+              onClick={() => updateStateValue((prev) => ({ ...prev, previewTarget: 'canvas' }))}
               className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
                 state.previewTarget === 'canvas' ? 'bg-sky-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
@@ -408,7 +424,7 @@ export const GradientLab: React.FC = () => {
               大画面キャンバス
             </button>
             <button
-              onClick={() => setState((prev) => ({ ...prev, previewTarget: 'text' }))}
+              onClick={() => updateStateValue((prev) => ({ ...prev, previewTarget: 'text' }))}
               className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
                 state.previewTarget === 'text' ? 'bg-sky-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
@@ -416,7 +432,7 @@ export const GradientLab: React.FC = () => {
               グラデーション文字
             </button>
             <button
-              onClick={() => setState((prev) => ({ ...prev, previewTarget: 'button' }))}
+              onClick={() => updateStateValue((prev) => ({ ...prev, previewTarget: 'button' }))}
               className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
                 state.previewTarget === 'button' ? 'bg-sky-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
@@ -552,7 +568,7 @@ export const GradientLab: React.FC = () => {
             {/* Type Selector Tab */}
             <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 self-start md:self-auto">
               <button
-                onClick={() => setState((prev) => ({ ...prev, type: 'linear' }))}
+                onClick={() => updateStateValue((prev) => ({ ...prev, type: 'linear' }))}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                   state.type === 'linear'
                     ? 'bg-sky-500 text-slate-950 shadow-sm shadow-sky-500/20'
@@ -562,7 +578,7 @@ export const GradientLab: React.FC = () => {
                 1. Linear (線形)
               </button>
               <button
-                onClick={() => setState((prev) => ({ ...prev, type: 'radial' }))}
+                onClick={() => updateStateValue((prev) => ({ ...prev, type: 'radial' }))}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                   state.type === 'radial'
                     ? 'bg-sky-500 text-slate-950 shadow-sm shadow-sky-500/20'
@@ -572,7 +588,7 @@ export const GradientLab: React.FC = () => {
                 2. Radial (放射状)
               </button>
               <button
-                onClick={() => setState((prev) => ({ ...prev, type: 'conic' }))}
+                onClick={() => updateStateValue((prev) => ({ ...prev, type: 'conic' }))}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                   state.type === 'conic'
                     ? 'bg-sky-500 text-slate-950 shadow-sm shadow-sky-500/20'

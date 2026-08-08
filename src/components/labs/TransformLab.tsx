@@ -16,6 +16,14 @@ import { CodePanel } from '../common/CodePanel';
 import { PresetButtons } from '../common/PresetButtons';
 import { PreviewPositionToolbar } from '../common/PreviewPositionToolbar';
 import { PropertyExplanationCard, BreakdownItem } from '../common/PropertyExplanationCard';
+import { 
+  generateTransformCss, 
+  generateTransformInline, 
+  generateTransformTailwind,
+  generateTransformValue 
+} from '../../utils/cssGenerators';
+import { useTheme } from '../../context/ThemeContext';
+import { getUIStyleClasses } from '../../utils/uiStyles';
 
 const INITIAL_STATE: TransformState = {
   rotate: 15,
@@ -28,6 +36,8 @@ const INITIAL_STATE: TransformState = {
   skewX: 4,
   skewY: 0,
   origin: 'center',
+  originX: 50,
+  originY: 50,
   showGhostOutline: true,
   showGrid: true,
 };
@@ -38,42 +48,42 @@ const PRESETS: Preset<TransformState>[] = [
     name: 'Rotate (回転 30°)',
     description: '要素を中心を軸に30度右回転',
     previewColor: '#38bdf8',
-    state: { rotate: 30, scale: 1, translateX: 0, translateY: 0, skewX: 0, skewY: 0, origin: 'center' },
+    state: { rotate: 30, scale: 1, scaleX: 1, scaleY: 1, isUniformScale: true, translateX: 0, translateY: 0, skewX: 0, skewY: 0, origin: 'center', originX: 50, originY: 50 },
   },
   {
     id: 'zoom',
     name: 'Zoom In (1.3倍 拡大)',
     description: 'ホバー時によく使われるなめらかな拡大エフェクト',
     previewColor: '#818cf8',
-    state: { rotate: 0, scale: 1.3, translateX: 0, translateY: 0, skewX: 0, skewY: 0, origin: 'center' },
+    state: { rotate: 0, scale: 1.3, scaleX: 1.3, scaleY: 1.3, isUniformScale: true, translateX: 0, translateY: 0, skewX: 0, skewY: 0, origin: 'center', originX: 50, originY: 50 },
   },
   {
     id: 'hover-float',
-    name: 'Hover Float (浮上 -8px)',
+    name: 'Hover Float (浮上 -12px)',
     description: 'Webボタンやカードのホバー時の定番「少し上に浮く」表現',
     previewColor: '#10b981',
-    state: { rotate: 0, scale: 1.02, translateX: 0, translateY: -12, skewX: 0, skewY: 0, origin: 'center' },
+    state: { rotate: 0, scale: 1.02, scaleX: 1.02, scaleY: 1.02, isUniformScale: true, translateX: 0, translateY: -12, skewX: 0, skewY: 0, origin: 'center', originX: 50, originY: 50 },
   },
   {
     id: 'tilt',
     name: 'Tilt (斜め見下ろし / Skew)',
     description: '要素を平行四辺形に歪ませてダイナミックな躍動感を演出',
     previewColor: '#f59e0b',
-    state: { rotate: -6, scale: 1, translateX: 0, translateY: 0, skewX: 12, skewY: 0, origin: 'center' },
+    state: { rotate: -6, scale: 1, scaleX: 1, scaleY: 1, isUniformScale: true, translateX: 0, translateY: 0, skewX: 12, skewY: 0, origin: 'center', originX: 50, originY: 50 },
   },
   {
     id: 'flip-x',
     name: 'Flip (左右反転)',
     description: 'scaleX(-1) で鏡のように左右を反転',
     previewColor: '#ec4899',
-    state: { rotate: 0, scale: 1, scaleX: -1, scaleY: 1, isUniformScale: false, translateX: 0, translateY: 0, skewX: 0, skewY: 0, origin: 'center' },
+    state: { rotate: 0, scale: 1, scaleX: -1, scaleY: 1, isUniformScale: false, translateX: 0, translateY: 0, skewX: 0, skewY: 0, origin: 'center', originX: 50, originY: 50 },
   },
   {
     id: 'stamp',
     name: 'Stamp (スタンプ風)',
     description: '斜めの角度とスケールで「合格」「CONFIDENTIAL」スタンプを表現',
     previewColor: '#ef4444',
-    state: { rotate: -25, scale: 1.15, translateX: 0, translateY: 0, skewX: 0, skewY: 0, origin: 'center' },
+    state: { rotate: -25, scale: 1.15, scaleX: 1.15, scaleY: 1.15, isUniformScale: true, translateX: 0, translateY: 0, skewX: 0, skewY: 0, origin: 'center', originX: 50, originY: 50 },
   },
 ];
 
@@ -112,6 +122,8 @@ const BREAKDOWN: BreakdownItem[] = [
 
 const TIPS = [
   'なぜ margin ではなく transform: translateY(-4px); で動かすのか？ → transformはGPUで直接描画されるため、再レイアウト(Reflow)が発生せず60fpsで極めて滑らかに動きます。',
+  '【制約・仕様注意】transform はインライン要素 (display: inline の <span> 等) には適用されません。適用するには display: inline-block または block にする必要があります。',
+  '【スタッキングコンテキスト】transform (none以外) を指定した要素は新しい重ね合わせコンテキストを作成するため、position: fixed や z-index の挙動に影響を与える場合があります。',
   'transformを複数組み合わせる場合、記述する順番によって結果が変わることがあります（例: 先に回転してから移動するか、移動してから回転するか）。',
   '左右反転・上下反転は scaleX(-1) や scaleY(-1) を使うと簡単に作れます。',
 ];
@@ -129,38 +141,18 @@ const ORIGIN_OPTIONS = [
 ];
 
 export const TransformLab: React.FC = () => {
+  const { uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle);
   const [state, setState] = useState<TransformState>(INITIAL_STATE);
   const [highlightedProp, setHighlightedProp] = useState<string | undefined>();
   const [activePreset, setActivePreset] = useState<string>('rotate');
   const [layout, setLayout] = useState<'side' | 'top' | 'bottom'>('side');
   const [isSticky, setIsSticky] = useState<boolean>(true);
 
-  // Build the transform string
-  const transformParts: string[] = [];
-  if (state.translateX !== 0) transformParts.push(`translateX(${state.translateX}px)`);
-  if (state.translateY !== 0) transformParts.push(`translateY(${state.translateY}px)`);
-  if (state.rotate !== 0) transformParts.push(`rotate(${state.rotate}deg)`);
-  
-  if (state.isUniformScale) {
-    if (state.scale !== 1) transformParts.push(`scale(${state.scale})`);
-  } else {
-    if (state.scaleX !== 1) transformParts.push(`scaleX(${state.scaleX})`);
-    if (state.scaleY !== 1) transformParts.push(`scaleY(${state.scaleY})`);
-  }
-
-  if (state.skewX !== 0) transformParts.push(`skewX(${state.skewX}deg)`);
-  if (state.skewY !== 0) transformParts.push(`skewY(${state.skewY}deg)`);
-
-  const transformValue = transformParts.length > 0 ? transformParts.join(' ') : 'none';
-
-  let cssRules = `.demo {\n  transform: ${transformValue};`;
-  if (state.origin !== 'center') {
-    cssRules += `\n  transform-origin: ${state.origin};`;
-  }
-  cssRules += `\n}`;
-
-  const inlineCss = `style="transform: ${transformValue};${state.origin !== 'center' ? ` transform-origin: ${state.origin};` : ''}"`;
-  const tailwindTip = `${state.rotate !== 0 ? `rotate-[${state.rotate}deg] ` : ''}${state.scale !== 1 ? `scale-[${state.scale}] ` : ''}${state.translateX !== 0 ? `translate-x-[${state.translateX}px] ` : ''}${state.translateY !== 0 ? `-translate-y-[${Math.abs(state.translateY)}px] ` : ''}`.trim() || 'transform-none';
+  // Pure functions for CSS and Tailwind generation
+  const cssRules = generateTransformCss(state);
+  const inlineCss = generateTransformInline(state);
+  const tailwindTip = generateTransformTailwind(state);
 
   const handleApplyPreset = (presetState: Partial<TransformState>) => {
     setState((prev) => ({ ...prev, ...presetState }));
@@ -178,17 +170,24 @@ export const TransformLab: React.FC = () => {
       skewX: 0,
       skewY: 0,
       origin: 'center',
+      originX: 50,
+      originY: 50,
     });
     setActivePreset('none');
   };
 
+  const updateStateValue = (updater: (prev: TransformState) => TransformState) => {
+    setState(updater);
+    setActivePreset('custom');
+  };
+
   const renderControlPanel = () => (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+    <div className={`${uiClasses.card} p-4 sm:p-5 space-y-4`}>
+      <div className={`flex items-center justify-between ${uiClasses.header}`}>
         <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
           変形コントロール
         </span>
-        <span className="text-[11px] font-mono text-sky-400 bg-sky-950 px-2 py-0.5 rounded border border-sky-900/60">
+        <span className={`text-[11px] px-2 py-0.5 ${uiClasses.badge}`}>
           2D Transformation
         </span>
       </div>
@@ -204,7 +203,7 @@ export const TransformLab: React.FC = () => {
           max={180}
           step={1}
           unit="deg"
-          onChange={(val) => setState((prev) => ({ ...prev, rotate: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, rotate: val }))}
           description="原点を中心に時計回り（正）または反時計回り（負）に回転します。"
           quickValues={[-90, -45, 0, 45, 90, 180]}
           onHoverToken={setHighlightedProp}
@@ -220,7 +219,7 @@ export const TransformLab: React.FC = () => {
           max={2.0}
           step={0.05}
           unit="x"
-          onChange={(val) => setState((prev) => ({ ...prev, scale: val, isUniformScale: true }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, scale: val, scaleX: val, scaleY: val, isUniformScale: true }))}
           description="要素のサイズ倍率。1.0が標準等倍、1.2で1.2倍、0.8で縮小です。"
           quickValues={[0.5, 0.8, 1.0, 1.2, 1.5, 2.0]}
           onHoverToken={setHighlightedProp}
@@ -237,7 +236,7 @@ export const TransformLab: React.FC = () => {
             max={120}
             step={1}
             unit="px"
-            onChange={(val) => setState((prev) => ({ ...prev, translateX: val }))}
+            onChange={(val) => updateStateValue((prev) => ({ ...prev, translateX: val }))}
             onHoverToken={setHighlightedProp}
             isHighlighted={highlightedProp === 'translateX'}
           />
@@ -249,7 +248,7 @@ export const TransformLab: React.FC = () => {
             max={120}
             step={1}
             unit="px"
-            onChange={(val) => setState((prev) => ({ ...prev, translateY: val }))}
+            onChange={(val) => updateStateValue((prev) => ({ ...prev, translateY: val }))}
             onHoverToken={setHighlightedProp}
             isHighlighted={highlightedProp === 'translateY'}
           />
@@ -265,7 +264,7 @@ export const TransformLab: React.FC = () => {
             max={45}
             step={1}
             unit="deg"
-            onChange={(val) => setState((prev) => ({ ...prev, skewX: val }))}
+            onChange={(val) => updateStateValue((prev) => ({ ...prev, skewX: val }))}
             onHoverToken={setHighlightedProp}
             isHighlighted={highlightedProp === 'skewX'}
           />
@@ -277,7 +276,7 @@ export const TransformLab: React.FC = () => {
             max={45}
             step={1}
             unit="deg"
-            onChange={(val) => setState((prev) => ({ ...prev, skewY: val }))}
+            onChange={(val) => updateStateValue((prev) => ({ ...prev, skewY: val }))}
             onHoverToken={setHighlightedProp}
             isHighlighted={highlightedProp === 'skewY'}
           />
@@ -396,7 +395,7 @@ export const TransformLab: React.FC = () => {
           id="transform-preview-element"
           className="w-56 h-36 rounded-2xl bg-gradient-to-tr from-sky-600 via-indigo-600 to-cyan-500 text-white p-4 shadow-2xl transition-all duration-150 flex flex-col justify-between select-none relative ring-2 ring-white/20"
           style={{
-            transform: transformValue,
+            transform: generateTransformValue(state),
             transformOrigin: state.origin,
           }}
         >
@@ -439,7 +438,7 @@ export const TransformLab: React.FC = () => {
       {/* Bottom summary bar */}
       <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs text-slate-300 flex-wrap gap-2">
         <span className="font-mono text-sky-300 text-[11px]">
-          transform: {transformValue};
+          transform: {generateTransformValue(state)};
         </span>
         <span className="text-[10px] text-slate-400 font-mono">
           基準点: {state.origin}

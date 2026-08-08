@@ -13,8 +13,16 @@ import { FilterState, Preset } from '../../types';
 import { SliderControl } from '../common/SliderControl';
 import { CodePanel } from '../common/CodePanel';
 import { PresetButtons } from '../common/PresetButtons';
-import { PreviewPositionToolbar } from '../common/PreviewPositionToolbar';
+import { PreviewPositionToolbar, PreviewLayout } from '../common/PreviewPositionToolbar';
 import { PropertyExplanationCard, BreakdownItem } from '../common/PropertyExplanationCard';
+import { 
+  generateFilterCss, 
+  generateFilterInline, 
+  generateFilterTailwind, 
+  generateFilterValue 
+} from '../../utils/cssGenerators';
+import { useTheme } from '../../context/ThemeContext';
+import { getUIStyleClasses } from '../../utils/uiStyles';
 
 const INITIAL_STATE: FilterState = {
   blur: 0,
@@ -129,34 +137,26 @@ const TIPS = [
   'すりガラス（グラスモーフィズム）UIを作る際は、filter ではなく backdrop-filter: blur(12px); を使用すると、要素自体の文字をぼかさず背景だけをぼかせます。',
   '白黒のアイコンをダークモードで白く反転させたい時は、filter: invert(100%); を指定するのが手軽で強力です。',
   'filterは複数スペース区切りで連結でき、左から順番にエフェクトが適用されます。',
+  '【パフォーマンス注意】広範囲の高解像度画像に対する大きな blur や頻繁なアニメーション変化はGPU描画コストが高いため、will-change: filter や transform の併用を検討しましょう。',
 ];
 
 export const FilterLab: React.FC = () => {
+  const { uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle);
   const [state, setState] = useState<FilterState>(INITIAL_STATE);
   const [highlightedProp, setHighlightedProp] = useState<string | undefined>();
   const [activePreset, setActivePreset] = useState<string>('natural');
   const [stageBg, setStageBg] = useState<'dark' | 'slate' | 'light'>('dark');
   const [showOriginal, setShowOriginal] = useState<boolean>(false);
-  const [layout, setLayout] = useState<'side' | 'top' | 'bottom'>('side');
+  const [layout, setLayout] = useState<PreviewLayout>('side');
   const [isSticky, setIsSticky] = useState<boolean>(true);
 
-  // Build the CSS Filter String
-  const filterParts: string[] = [];
-  if (state.blur > 0) filterParts.push(`blur(${state.blur}px)`);
-  if (state.brightness !== 100) filterParts.push(`brightness(${state.brightness}%)`);
-  if (state.contrast !== 100) filterParts.push(`contrast(${state.contrast}%)`);
-  if (state.grayscale > 0) filterParts.push(`grayscale(${state.grayscale}%)`);
-  if (state.saturate !== 100) filterParts.push(`saturate(${state.saturate}%)`);
-  if (state.sepia > 0) filterParts.push(`sepia(${state.sepia}%)`);
-  if (state.hueRotate !== 0) filterParts.push(`hue-rotate(${state.hueRotate}deg)`);
-  if (state.opacity !== 100) filterParts.push(`opacity(${state.opacity}%)`);
-  if (state.invert > 0) filterParts.push(`invert(${state.invert}%)`);
-
-  const filterValue = filterParts.length > 0 ? filterParts.join(' ') : 'none';
+  // Pure functions for CSS & Tailwind string generation
+  const filterValue = generateFilterValue(state);
   const appliedFilter = showOriginal ? 'none' : filterValue;
-  const cssRules = `.demo {\n  filter: ${filterValue};\n}`;
-  const inlineCss = `style="filter: ${filterValue};"`;
-  const tailwindTip = state.grayscale === 100 ? 'grayscale' : state.blur > 0 ? `blur-[${state.blur}px]` : state.brightness !== 100 ? `brightness-${state.brightness}` : 'filter-none';
+  const cssRules = generateFilterCss(state);
+  const inlineCss = generateFilterInline(state);
+  const tailwindTip = generateFilterTailwind(state);
 
   const handleApplyPreset = (presetState: Partial<FilterState>) => {
     setState((prev) => ({ ...prev, ...presetState }));
@@ -167,13 +167,18 @@ export const FilterLab: React.FC = () => {
     setActivePreset('natural');
   };
 
+  const updateStateValue = (updater: (prev: FilterState) => FilterState) => {
+    setState(updater);
+    setActivePreset('custom');
+  };
+
   const renderControlPanel = () => (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+    <div className={`${uiClasses.card} p-4 sm:p-5 space-y-4`}>
+      <div className={`flex items-center justify-between ${uiClasses.header}`}>
         <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
           フィルタ調整パネル
         </span>
-        <span className="text-[11px] font-mono text-sky-400 bg-sky-950 px-2 py-0.5 rounded border border-sky-900/60">
+        <span className={`text-[11px] px-2 py-0.5 ${uiClasses.badge}`}>
           Visual Effects
         </span>
       </div>
@@ -188,7 +193,7 @@ export const FilterLab: React.FC = () => {
           max={20}
           step={1}
           unit="px"
-          onChange={(val) => setState((prev) => ({ ...prev, blur: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, blur: val }))}
           description="ピクセルを平均化して画像をぼかします。0pxで通常、数値が大きいほどぼやけます。"
           quickValues={[0, 2, 4, 8, 12, 16]}
           onHoverToken={setHighlightedProp}
@@ -203,7 +208,7 @@ export const FilterLab: React.FC = () => {
           max={200}
           step={5}
           unit="%"
-          onChange={(val) => setState((prev) => ({ ...prev, brightness: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, brightness: val }))}
           description="明度の調整。100%が標準、0%で真っ黒、200%で2倍の明るさになります。"
           quickValues={[0, 50, 100, 150, 200]}
           onHoverToken={setHighlightedProp}
@@ -218,7 +223,7 @@ export const FilterLab: React.FC = () => {
           max={200}
           step={5}
           unit="%"
-          onChange={(val) => setState((prev) => ({ ...prev, contrast: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, contrast: val }))}
           description="コントラスト（明暗の差）。100%が標準、0%で均一な灰色、200%でくっきり強調。"
           quickValues={[0, 50, 100, 150, 200]}
           onHoverToken={setHighlightedProp}
@@ -233,7 +238,7 @@ export const FilterLab: React.FC = () => {
           max={100}
           step={5}
           unit="%"
-          onChange={(val) => setState((prev) => ({ ...prev, grayscale: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, grayscale: val }))}
           description="モノクロ（白黒）化。0%で元のフルカラー、100%で完全なグレースケールになります。"
           quickValues={[0, 25, 50, 75, 100]}
           onHoverToken={setHighlightedProp}
@@ -248,7 +253,7 @@ export const FilterLab: React.FC = () => {
           max={300}
           step={10}
           unit="%"
-          onChange={(val) => setState((prev) => ({ ...prev, saturate: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, saturate: val }))}
           description="色の鮮やかさ。0%で色抜け、100%が通常、200%以上でビビッドな超鮮やかカラー。"
           quickValues={[0, 50, 100, 150, 200, 300]}
           onHoverToken={setHighlightedProp}
@@ -263,7 +268,7 @@ export const FilterLab: React.FC = () => {
           max={360}
           step={5}
           unit="deg"
-          onChange={(val) => setState((prev) => ({ ...prev, hueRotate: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, hueRotate: val }))}
           description="色相環を回転させて色味をガラリと変えます（赤→緑→青→赤と360度で一周）。"
           quickValues={[0, 45, 90, 180, 270, 360]}
           onHoverToken={setHighlightedProp}
@@ -278,7 +283,7 @@ export const FilterLab: React.FC = () => {
           max={100}
           step={5}
           unit="%"
-          onChange={(val) => setState((prev) => ({ ...prev, sepia: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, sepia: val }))}
           description="レトロな茶褐色・セピア調に変換。0%で通常、100%で完全なアンティーク調。"
           quickValues={[0, 25, 50, 75, 100]}
           onHoverToken={setHighlightedProp}
@@ -293,7 +298,7 @@ export const FilterLab: React.FC = () => {
           max={100}
           step={5}
           unit="%"
-          onChange={(val) => setState((prev) => ({ ...prev, invert: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, invert: val }))}
           description="色をネガポジ反転（白↔黒、赤↔シアン）。100%でダーク/ライトモードの反転に似た効果。"
           quickValues={[0, 25, 50, 75, 100]}
           onHoverToken={setHighlightedProp}
@@ -304,9 +309,9 @@ export const FilterLab: React.FC = () => {
   );
 
   const renderPreviewStage = () => (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 flex flex-col justify-between min-h-[480px]">
+    <div className={`${uiClasses.card} p-4 sm:p-6 space-y-4 flex flex-col justify-between min-h-[480px]`}>
       {/* Stage Toolbar with Subject Picker & Background Switcher */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+      <div className={`flex items-center justify-between ${uiClasses.header} flex-wrap gap-2`}>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span className="text-xs font-bold text-slate-200">
@@ -520,7 +525,7 @@ export const FilterLab: React.FC = () => {
           filter: {filterValue};
         </span>
         <span className="text-[10px] text-slate-400 font-mono">
-          {filterParts.length} 個のエフェクト適用中 {showOriginal && '(比較中)'}
+          {filterValue !== 'none' ? 'エフェクト適用中' : '通常'} {showOriginal && '(比較中)'}
         </span>
       </div>
     </div>

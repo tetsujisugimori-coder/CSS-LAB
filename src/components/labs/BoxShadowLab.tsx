@@ -17,6 +17,15 @@ import { CodePanel } from '../common/CodePanel';
 import { PresetButtons } from '../common/PresetButtons';
 import { PropertyExplanationCard, BreakdownItem } from '../common/PropertyExplanationCard';
 import { PreviewPositionToolbar, PreviewLayout } from '../common/PreviewPositionToolbar';
+import { 
+  generateBoxShadowCss, 
+  generateBoxShadowInline, 
+  generateBoxShadowTailwind, 
+  generateBoxShadowValue,
+  hexToRgba
+} from '../../utils/cssGenerators';
+import { useTheme } from '../../context/ThemeContext';
+import { getUIStyleClasses } from '../../utils/uiStyles';
 
 const INITIAL_STATE: BoxShadowState = {
   offsetX: 0,
@@ -119,9 +128,12 @@ const TIPS = [
   '自然な影を作る極意: offset-xは「0」、offset-yは「8px〜16px」、blur-radiusはoffset-yの約2倍（16px〜32px）に設定すると、光が上から差している自然な印象になります。',
   'spread-radiusを「-4px」など少しマイナスに設定すると、影の端が要素からはみ出しすぎず、上品で引き締まった高級感が出ます。',
   '黒(#000000)の濃すぎる影は避け、rgba(0,0,0, 0.08) 〜 (0,0,0, 0.25) の薄いシャドウを基本にしましょう。',
+  '【パフォーマンス注意】非常に大きな blur-radius やカンマ区切りの過度な多重影は、低スペック端末やモバイルスクロール時のGPU再描画負荷が高くなる場合があるため、適切な値に抑えることが推奨されます。',
 ];
 
 export const BoxShadowLab: React.FC = () => {
+  const { uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle);
   const [state, setState] = useState<BoxShadowState>(INITIAL_STATE);
   const [highlightedProp, setHighlightedProp] = useState<string | undefined>();
   const [activePreset, setActivePreset] = useState<string>('soft');
@@ -129,40 +141,12 @@ export const BoxShadowLab: React.FC = () => {
   const [layout, setLayout] = useState<PreviewLayout>('side');
   const [isSticky, setIsSticky] = useState<boolean>(true);
 
-  // Convert Hex to RGBA
-  const hexToRgba = (hex: string, alphaPercent: number) => {
-    let cleanHex = hex.replace('#', '');
-    if (cleanHex.length === 3) {
-      cleanHex = cleanHex.split('').map((c) => c + c).join('');
-    }
-    const r = parseInt(cleanHex.substring(0, 2), 16) || 0;
-    const g = parseInt(cleanHex.substring(2, 4), 16) || 0;
-    const b = parseInt(cleanHex.substring(4, 6), 16) || 0;
-    const a = (alphaPercent / 100).toFixed(2);
-    return `rgba(${r}, ${g}, ${b}, ${a})`;
-  };
-
-  const shadowColorStr = hexToRgba(state.color, state.opacity);
-
-  // Build the CSS string for box-shadow
-  const primaryShadow = `${state.inset ? 'inset ' : ''}${state.offsetX}px ${state.offsetY}px ${state.blur}px ${state.spread}px ${shadowColorStr}`;
-  const secondaryShadow = state.secondaryShadowEnabled
-    ? `, ${state.inset ? 'inset ' : ''}0px 2px 4px 0px ${hexToRgba(state.color, Math.min(100, state.opacity * 0.6))}`
-    : '';
-
-  const fullShadowValue = `${primaryShadow}${secondaryShadow}`;
-
-  const cssRules = `.demo {\n  /* X Y ぼかし 広がり 色 [inset] */\n  box-shadow: ${fullShadowValue};\n}`;
-  const inlineCss = `style="box-shadow: ${fullShadowValue};"`;
-  const tailwindTip = state.inset
-    ? 'shadow-inner'
-    : state.blur === 0
-    ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)]'
-    : state.blur <= 15
-    ? 'shadow-md'
-    : state.blur <= 30
-    ? 'shadow-lg'
-    : 'shadow-2xl';
+  // Pure functions for CSS & Tailwind string generation
+  const cssRules = generateBoxShadowCss(state);
+  const inlineCss = generateBoxShadowInline(state);
+  const tailwindTip = generateBoxShadowTailwind(state);
+  const fullShadowValue = generateBoxShadowValue(state);
+  const shadowColorStr = hexToRgba(state.color, state.opacity / 100);
 
   const handleApplyPreset = (presetState: Partial<BoxShadowState>) => {
     setState((prev) => ({ ...prev, ...presetState }));
@@ -173,13 +157,18 @@ export const BoxShadowLab: React.FC = () => {
     setActivePreset('soft');
   };
 
+  const updateStateValue = (updater: (prev: BoxShadowState) => BoxShadowState) => {
+    setState(updater);
+    setActivePreset('custom');
+  };
+
   const renderControlPanel = () => (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+    <div className={`${uiClasses.card} p-4 sm:p-5 space-y-4`}>
+      <div className={`flex items-center justify-between ${uiClasses.header}`}>
         <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
           シャドウの構成要素
         </span>
-        <span className="text-[11px] font-mono text-sky-400 bg-sky-950 px-2 py-0.5 rounded border border-sky-900/60">
+        <span className={`text-[11px] px-2 py-0.5 ${uiClasses.badge}`}>
           X Y Blur Spread Color
         </span>
       </div>
@@ -194,7 +183,7 @@ export const BoxShadowLab: React.FC = () => {
           max={50}
           step={1}
           unit="px"
-          onChange={(val) => setState((prev) => ({ ...prev, offsetX: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, offsetX: val }))}
           description="水平方向のズレ。プラスで右、マイナスで左へ影が伸びます。"
           quickValues={[-20, -10, 0, 10, 20]}
           onHoverToken={setHighlightedProp}
@@ -209,7 +198,7 @@ export const BoxShadowLab: React.FC = () => {
           max={50}
           step={1}
           unit="px"
-          onChange={(val) => setState((prev) => ({ ...prev, offsetY: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, offsetY: val }))}
           description="垂直方向のズレ。プラスで下、マイナスで上へ影が落ちます。"
           quickValues={[-10, 0, 8, 16, 24, 32]}
           onHoverToken={setHighlightedProp}
@@ -224,7 +213,7 @@ export const BoxShadowLab: React.FC = () => {
           max={80}
           step={1}
           unit="px"
-          onChange={(val) => setState((prev) => ({ ...prev, blur: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, blur: val }))}
           description="大きくすると影の輪郭が柔らかくぼやけます。0pxでくっきりしたハードシャドウ。"
           quickValues={[0, 8, 16, 24, 40, 60]}
           onHoverToken={setHighlightedProp}
@@ -239,7 +228,7 @@ export const BoxShadowLab: React.FC = () => {
           max={50}
           step={1}
           unit="px"
-          onChange={(val) => setState((prev) => ({ ...prev, spread: val }))}
+          onChange={(val) => updateStateValue((prev) => ({ ...prev, spread: val }))}
           description="影自体の面積を拡大または引き締めます。マイナスにすると影が要素の内側に収まります。"
           quickValues={[-10, -4, 0, 4, 10, 20]}
           onHoverToken={setHighlightedProp}
@@ -270,13 +259,13 @@ export const BoxShadowLab: React.FC = () => {
               <input
                 type="color"
                 value={state.color}
-                onChange={(e) => setState((prev) => ({ ...prev, color: e.target.value }))}
+                onChange={(e) => updateStateValue((prev) => ({ ...prev, color: e.target.value }))}
                 className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-slate-700"
               />
               <input
                 type="text"
                 value={state.color}
-                onChange={(e) => setState((prev) => ({ ...prev, color: e.target.value }))}
+                onChange={(e) => updateStateValue((prev) => ({ ...prev, color: e.target.value }))}
                 className="w-20 px-2 py-1 text-xs font-mono bg-slate-950 border border-slate-700 rounded text-slate-200"
               />
             </div>
@@ -291,7 +280,7 @@ export const BoxShadowLab: React.FC = () => {
                 min={0}
                 max={100}
                 value={state.opacity}
-                onChange={(e) => setState((prev) => ({ ...prev, opacity: parseInt(e.target.value) }))}
+                onChange={(e) => updateStateValue((prev) => ({ ...prev, opacity: parseInt(e.target.value) || 0 }))}
                 className="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer"
               />
             </div>
@@ -323,9 +312,9 @@ export const BoxShadowLab: React.FC = () => {
   );
 
   const renderPreviewStage = () => (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 flex flex-col justify-between min-h-[460px]">
+    <div className={`${uiClasses.card} p-4 sm:p-6 space-y-4 flex flex-col justify-between min-h-[460px]`}>
       {/* Stage Toolbar */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+      <div className={`flex items-center justify-between ${uiClasses.header} flex-wrap gap-2`}>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span className="text-xs font-bold text-slate-200">

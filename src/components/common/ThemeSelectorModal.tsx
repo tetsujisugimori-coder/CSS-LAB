@@ -26,6 +26,16 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({ isOpen, 
   const { themeId, setThemeId, themes, uiStyle, setUiStyle, theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'themes' | 'styles'>('themes');
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const UI_STYLES: { id: UIStyle; name: string; nameEn: string; desc: string; icon: React.ReactNode }[] = [
@@ -60,7 +70,13 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({ isOpen, 
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="theme-modal-title"
+    >
       <div 
         className="w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 transition-colors"
         style={{
@@ -86,7 +102,7 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({ isOpen, 
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-black tracking-tight">
+                <h2 id="theme-modal-title" className="text-xl sm:text-2xl font-black tracking-tight">
                   デザインテーマ・候補セレクター
                 </h2>
                 <span 
@@ -101,7 +117,7 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({ isOpen, 
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-                お好みのデザイン候補をクリックするだけで、アプリ全体の配色と世界観が瞬時に変わります
+                お好みのデザイン候補をクリックするだけで、アプリ全体の配色と世界観が瞬時に変わります (Escキーで閉じる)
               </p>
             </div>
           </div>
@@ -109,6 +125,7 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({ isOpen, 
           {/* Close button */}
           <button
             onClick={onClose}
+            aria-label="モーダルを閉じる"
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition cursor-pointer border border-transparent hover:border-slate-700"
             title="閉じる"
           >

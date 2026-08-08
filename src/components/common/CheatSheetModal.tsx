@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, BookOpen, ExternalLink, Code2, Sparkles, Layers } from 'lucide-react';
 
 interface CheatSheetModalProps {
@@ -12,6 +12,16 @@ export const CheatSheetModal: React.FC<CheatSheetModalProps> = ({
   onClose,
   onSelectLab,
 }) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const sheets = [
@@ -58,7 +68,13 @@ export const CheatSheetModal: React.FC<CheatSheetModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cheatsheet-title"
+    >
       <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900/95 backdrop-blur z-10">
@@ -67,17 +83,18 @@ export const CheatSheetModal: React.FC<CheatSheetModalProps> = ({
               <BookOpen className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white">
+              <h2 id="cheatsheet-title" className="text-base sm:text-lg font-bold text-white">
                 CSS LAB 早見表 & チートシート
               </h2>
               <p className="text-xs text-slate-400">
-                5つの主要プロパティの構文とよく使う値を一覧で確認
+                5つの主要プロパティの構文とよく使う値を一覧で確認 (Escキーで閉じる)
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition"
+            aria-label="モーダルを閉じる"
+            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -101,7 +118,7 @@ export const CheatSheetModal: React.FC<CheatSheetModalProps> = ({
                       onSelectLab(s.id);
                       onClose();
                     }}
-                    className="self-start sm:self-auto px-2.5 py-1 rounded bg-sky-950 hover:bg-sky-900 text-sky-300 text-xs font-semibold border border-sky-800/60 flex items-center gap-1 transition"
+                    className="self-start sm:self-auto px-2.5 py-1 rounded bg-sky-950 hover:bg-sky-900 text-sky-300 text-xs font-semibold border border-sky-800/60 flex items-center gap-1 transition cursor-pointer"
                   >
                     <span>この実験室を開く</span>
                     <ExternalLink className="w-3 h-3" />
@@ -136,9 +153,9 @@ export const CheatSheetModal: React.FC<CheatSheetModalProps> = ({
         <div className="p-4 border-t border-slate-800 bg-slate-900/60 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-md shadow-sky-500/20"
+            className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-md shadow-sky-500/20 cursor-pointer"
           >
-            閉じる
+            閉じる (Esc)
           </button>
         </div>
       </div>
