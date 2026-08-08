@@ -1,0 +1,6 @@
+{
+  "name": "CSS LAB",
+  "description": "触って、変えて、CSSを理解する実験室。Border Radius, Box Shadow, Transform, Filter, Gradientの5つの実験室でCSSの視覚効果をリアルタイムに学べるインタラクティブWebアプリ",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --lab-bg: #0f172a;
+    --lab-card: #1e293b;
+    --lab-border: #334155;
+    --lab-accent: #38bdf8;
+  }
+}
+
+/* Custom slider thumb styles for touch and desktop */
+input[type="range"] {
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.8);
+}
+
+/* Scientific Laboratory Grid Pattern */
+.bg-lab-grid {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+.bg-lab-grid-light {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+}
+
+.bg-checkered {
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+  background-image: 
+    linear-gradient(45deg, rgba(100, 116, 139, 0.15) 25%, transparent 25%, transparent 75%, rgba(100, 116, 139, 0.15) 75%),
+    linear-gradient(45deg, rgba(100, 116, 139, 0.15) 25%, transparent 25%, transparent 75%, rgba(100, 116, 139, 0.15) 75%);
+}
+
+/* Monospace font styling */
+.font-mono-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
