@@ -8,6 +8,31 @@ import {
 } from '../types';
 
 /**
+ * 有効な16進カラーコード（#RGB または #RRGGBB）かを厳密に判定する
+ */
+export function isValidHexColor(hex: string): boolean {
+  if (!hex || typeof hex !== 'string') return false;
+  const clean = hex.trim();
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(clean);
+}
+
+/**
+ * 16進カラーコードを標準の #RRGGBB 形式に正規化する
+ * 無効な文字列の場合は null を返す
+ */
+export function normalizeHexColor(hex: string): string | null {
+  if (!isValidHexColor(hex)) return null;
+  const clean = hex.trim().toLowerCase();
+  if (clean.length === 4) {
+    const r = clean[1];
+    const g = clean[2];
+    const b = clean[3];
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+  return clean;
+}
+
+/**
  * 16進数カラーコードを安全なRGBA文字列に変換する
  */
 export function hexToRgba(hex: string, opacity: number): string {
@@ -23,18 +48,8 @@ export function hexToRgba(hex: string, opacity: number): string {
  * 16進数カラーコードのサニタイズ（不正な入力時のフォールバック）
  */
 export function sanitizeHexColor(hex: string, fallback = '#38bdf8'): string {
-  if (!hex || typeof hex !== 'string') return fallback;
-  const clean = hex.trim();
-  if (/^#[0-9a-fA-F]{6}$/.test(clean)) {
-    return clean.toLowerCase();
-  }
-  if (/^#[0-9a-fA-F]{3}$/.test(clean)) {
-    const r = clean[1];
-    const g = clean[2];
-    const b = clean[3];
-    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
-  }
-  return fallback;
+  const normalized = normalizeHexColor(hex);
+  return normalized || fallback;
 }
 
 /* =========================================================================

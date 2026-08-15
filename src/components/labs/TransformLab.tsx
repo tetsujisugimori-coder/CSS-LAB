@@ -141,11 +141,11 @@ const ORIGIN_OPTIONS = [
 ];
 
 export const TransformLab: React.FC = () => {
-  const { uiStyle } = useTheme();
-  const uiClasses = getUIStyleClasses(uiStyle);
+  const { theme, uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle, theme);
   const [state, setState] = useState<TransformState>(INITIAL_STATE);
   const [highlightedProp, setHighlightedProp] = useState<string | undefined>();
-  const [activePreset, setActivePreset] = useState<string>('rotate');
+  const [activePreset, setActivePreset] = useState<string | undefined>();
   const [layout, setLayout] = useState<'side' | 'top' | 'bottom'>('side');
   const [isSticky, setIsSticky] = useState<boolean>(true);
 
@@ -154,31 +154,19 @@ export const TransformLab: React.FC = () => {
   const inlineCss = generateTransformInline(state);
   const tailwindTip = generateTransformTailwind(state);
 
-  const handleApplyPreset = (presetState: Partial<TransformState>) => {
+  const handleApplyPreset = (presetState: Partial<TransformState>, presetId?: string) => {
     setState((prev) => ({ ...prev, ...presetState }));
+    setActivePreset(presetId);
   };
 
   const handleReset = () => {
-    setState({
-      ...INITIAL_STATE,
-      rotate: 0,
-      scale: 1,
-      scaleX: 1,
-      scaleY: 1,
-      translateX: 0,
-      translateY: 0,
-      skewX: 0,
-      skewY: 0,
-      origin: 'center',
-      originX: 50,
-      originY: 50,
-    });
-    setActivePreset('none');
+    setState(INITIAL_STATE);
+    setActivePreset(undefined);
   };
 
   const updateStateValue = (updater: (prev: TransformState) => TransformState) => {
     setState(updater);
-    setActivePreset('custom');
+    setActivePreset(undefined);
   };
 
   const renderControlPanel = () => (

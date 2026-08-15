@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
-import { Copy, Check, Code, FileText, Sparkles } from 'lucide-react';
+import { Copy, Check, Code, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useTheme } from '../../context/ThemeContext';
-
-interface TokenSegment {
-  text: string;
-  type?: 'selector' | 'property' | 'value' | 'punctuation' | 'highlight' | 'unit';
-  tokenKey?: string;
-  isHighlighted?: boolean;
-}
+import { getUIStyleClasses } from '../../utils/uiStyles';
+import { tokenizeCss } from '../../utils/codeTokenizer';
 
 interface CodePanelProps {
   cssRules: string;
@@ -27,7 +22,8 @@ export const CodePanel: React.FC<CodePanelProps> = ({
   onHoverToken,
   title = '生成されたCSSコード',
 }) => {
-  const { theme } = useTheme();
+  const { theme, uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle, theme);
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<'css' | 'inline' | 'tailwind'>('css');
 
@@ -58,9 +54,20 @@ export const CodePanel: React.FC<CodePanelProps> = ({
     }
   };
 
+  const tokens = tokenizeCss(cssRules);
+
+  const isTokenHighlighted = (key?: string) => {
+    if (!key || !highlightedToken) return false;
+    if (key === highlightedToken) return true;
+    if (key === 'translate' && (highlightedToken === 'translateX' || highlightedToken === 'translateY')) return true;
+    if (key === 'skew' && (highlightedToken === 'skewX' || highlightedToken === 'skewY')) return true;
+    if (key === 'scale' && (highlightedToken === 'scale' || highlightedToken === 'scaleX' || highlightedToken === 'scaleY')) return true;
+    return false;
+  };
+
   return (
     <div 
-      className="rounded-xl overflow-hidden shadow-xl border transition-colors"
+      className={`overflow-hidden border transition-all ${uiClasses.panel}`}
       style={{
         backgroundColor: theme.category === 'dark' ? '#020617' : '#f8fafc',
         borderColor: theme.palette.border,
@@ -68,10 +75,9 @@ export const CodePanel: React.FC<CodePanelProps> = ({
     >
       {/* Code Header with Mode Switcher & Copy Button */}
       <div 
-        className="flex items-center justify-between px-3.5 py-2 border-b flex-wrap gap-2 transition-colors"
+        className={`flex items-center justify-between px-3.5 py-2 border-b flex-wrap gap-2 transition-colors ${uiClasses.header}`}
         style={{
           backgroundColor: theme.category === 'dark' ? '#0f172a' : '#ffffff',
-          borderColor: theme.palette.border,
         }}
       >
         <div className="flex items-center gap-2">
@@ -155,10 +161,9 @@ export const CodePanel: React.FC<CodePanelProps> = ({
           <button
             type="button"
             onClick={copyToClipboard}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer select-none"
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer select-none ${uiClasses.button}`}
             style={{
-              backgroundColor: copied ? '#10b981' : theme.palette.primary,
-              color: theme.category === 'dark' ? '#0f172a' : '#ffffff',
+              backgroundColor: copied ? '#10b981' : undefined,
             }}
             title="CSSコードをクリップボードにコピー"
           >
@@ -182,7 +187,38 @@ export const CodePanel: React.FC<CodePanelProps> = ({
         {viewMode === 'css' && (
           <pre className="m-0 select-text whitespace-pre">
             <code style={{ color: theme.palette.text }}>
-              {cssRules}
+              {tokens.map((tok, idx) => {
+                if (typeof tok === 'string') {
+                  return <span key={idx}>{tok}</span>;
+                }
+                const active = isTokenHighlighted(tok.tokenKey);
+                return (
+                  <span
+                    key={idx}
+                    onMouseEnter={() => onHoverToken?.(tok.tokenKey)}
+                    onMouseLeave={() => onHoverToken?.(undefined)}
+                    onFocus={() => onHoverToken?.(tok.tokenKey)}
+                    onBlur={() => onHoverToken?.(undefined)}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`プロパティ ${tok.tokenKey} をハイライト`}
+                    className={`rounded px-1 transition cursor-pointer outline-none ${
+                      active
+                        ? 'ring-2 ring-sky-400 bg-sky-500/25 font-bold text-sky-300'
+                        : 'hover:bg-slate-700/30'
+                    }`}
+                    style={
+                      active
+                        ? {
+                            color: theme.palette.primary,
+                          }
+                        : undefined
+                    }
+                  >
+                    {tok.text}
+                  </span>
+                );
+              })}
             </code>
           </pre>
         )}
@@ -224,7 +260,7 @@ export const CodePanel: React.FC<CodePanelProps> = ({
           color: theme.category === 'dark' ? '#94a3b8' : '#64748b',
         }}
       >
-        <span>💡 スライダーを操作・ホバーすると対応するCSSがリアルタイムに更新されます</span>
+        <span>💡 スライダーやコードの各要素をホバーすると対応箇所がハイライトされます</span>
         {highlightedToken && (
           <span className="font-bold font-mono" style={{ color: theme.palette.primary }}>
             選択中: {highlightedToken}

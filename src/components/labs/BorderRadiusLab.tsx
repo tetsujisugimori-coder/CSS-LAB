@@ -130,11 +130,11 @@ const TIPS = [
 ];
 
 export const BorderRadiusLab: React.FC = () => {
-  const { uiStyle } = useTheme();
-  const uiClasses = getUIStyleClasses(uiStyle);
+  const { theme, uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle, theme);
   const [state, setState] = useState<BorderRadiusState>(INITIAL_STATE);
   const [highlightedProp, setHighlightedProp] = useState<string | undefined>();
-  const [activePreset, setActivePreset] = useState<string>('soft-card');
+  const [activePreset, setActivePreset] = useState<string | undefined>('soft-card');
   const [previewShape, setPreviewShape] = useState<'card' | 'button' | 'avatar'>('card');
   const [layout, setLayout] = useState<'side' | 'top' | 'bottom'>('side');
   const [isSticky, setIsSticky] = useState<boolean>(true);
@@ -153,8 +153,9 @@ export const BorderRadiusLab: React.FC = () => {
     return generateBorderRadiusValue(normalizedState);
   };
 
-  const handleApplyPreset = (presetState: Partial<BorderRadiusState>) => {
+  const handleApplyPreset = (presetState: Partial<BorderRadiusState>, presetId?: string) => {
     setState((prev) => ({ ...prev, ...presetState }));
+    setActivePreset(presetId);
   };
 
   const handleReset = () => {
@@ -164,7 +165,7 @@ export const BorderRadiusLab: React.FC = () => {
 
   const updateStateValue = (updater: (prev: BorderRadiusState) => BorderRadiusState) => {
     setState(updater);
-    setActivePreset('custom');
+    setActivePreset(undefined);
   };
 
   const renderControlPanel = () => (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { HelpCircle, Plus, Minus } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { getUIStyleClasses } from '../../utils/uiStyles';
 
 interface SliderControlProps {
   label: string;
@@ -31,7 +32,8 @@ export const SliderControl: React.FC<SliderControlProps> = ({
   onHoverToken,
   isHighlighted = false,
 }) => {
-  const { theme } = useTheme();
+  const { theme, uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle, theme);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const num = parseFloat(e.target.value);
@@ -48,31 +50,42 @@ export const SliderControl: React.FC<SliderControlProps> = ({
     onChange(clamped);
   };
 
+  const triggerHover = () => {
+    if (onHoverToken && propertyKey) {
+      onHoverToken(propertyKey);
+    }
+  };
+
+  const clearHover = () => {
+    if (onHoverToken) {
+      onHoverToken(undefined);
+    }
+  };
+
   return (
     <div
-      className={`p-3 rounded-xl border transition-all ${
+      className={`p-3 border transition-all ${uiClasses.subCard} ${
         isHighlighted
-          ? 'shadow-md scale-[1.01]'
-          : 'hover:border-slate-700'
+          ? 'ring-2 ring-sky-400 border-sky-400 scale-[1.01] shadow-lg'
+          : 'hover:border-slate-500'
       }`}
       style={{
-        backgroundColor: theme.category === 'dark' ? '#0f172a' : '#ffffff',
-        borderColor: isHighlighted ? theme.palette.primary : theme.palette.border,
+        borderColor: isHighlighted ? theme.palette.primary : undefined,
       }}
-      onMouseEnter={() => onHoverToken && propertyKey && onHoverToken(propertyKey)}
-      onMouseLeave={() => onHoverToken && onHoverToken(undefined)}
+      onMouseEnter={triggerHover}
+      onMouseLeave={clearHover}
     >
       {/* Header: Label, Monospace property name, and Number Input */}
       <div className="flex items-center justify-between gap-1.5 mb-2 flex-wrap">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          <label className="text-xs font-bold" style={{ color: theme.palette.text }}>{label}</label>
+          <label className="text-xs font-bold" style={{ color: theme.palette.text }}>
+            {label}
+          </label>
           {propertyKey && (
             <code 
-              className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded border shrink-0"
+              className={`text-[10px] font-mono font-medium px-1.5 py-0.5 shrink-0 ${uiClasses.badge}`}
               style={{
-                backgroundColor: theme.category === 'dark' ? '#1e293b' : '#f1f5f9',
                 color: theme.palette.primary,
-                borderColor: theme.palette.border,
               }}
             >
               {propertyKey}
@@ -85,14 +98,11 @@ export const SliderControl: React.FC<SliderControlProps> = ({
           <button
             type="button"
             onClick={() => handleStep('down')}
-            className="w-5 h-5 min-w-[20px] min-h-[20px] rounded flex items-center justify-center text-xs transition active:scale-90 cursor-pointer border shrink-0"
-            style={{
-              backgroundColor: theme.category === 'dark' ? '#1e293b' : '#f1f5f9',
-              borderColor: theme.palette.border,
-              color: theme.palette.text,
-            }}
+            onFocus={triggerHover}
+            onBlur={clearHover}
+            className={`w-5 h-5 min-w-[20px] min-h-[20px] rounded flex items-center justify-center text-xs transition active:scale-90 cursor-pointer border shrink-0 ${uiClasses.buttonSecondary}`}
             title="値を減らす"
-            aria-label="値を減らす"
+            aria-label={`${label}の値を減らす`}
           >
             <Minus className="w-2.5 h-2.5" />
           </button>
@@ -104,12 +114,10 @@ export const SliderControl: React.FC<SliderControlProps> = ({
               step={step}
               value={value}
               onChange={handleInputChange}
-              className="w-14 min-w-[3.5rem] px-1 py-0.5 text-right text-xs font-mono font-bold border rounded focus:outline-none"
-              style={{
-                backgroundColor: theme.category === 'dark' ? '#020617' : '#f8fafc',
-                borderColor: theme.palette.border,
-                color: theme.palette.primary,
-              }}
+              onFocus={triggerHover}
+              onBlur={clearHover}
+              className={`w-14 min-w-[3.5rem] px-1 py-0.5 text-right text-xs font-mono font-bold border rounded focus:outline-none ${uiClasses.input}`}
+              aria-label={`${label}の数値入力`}
             />
             <span className="ml-1 text-[10px] font-mono text-slate-400 select-none">
               {unit}
@@ -118,14 +126,11 @@ export const SliderControl: React.FC<SliderControlProps> = ({
           <button
             type="button"
             onClick={() => handleStep('up')}
-            className="w-5 h-5 min-w-[20px] min-h-[20px] rounded flex items-center justify-center text-xs transition active:scale-90 cursor-pointer border shrink-0"
-            style={{
-              backgroundColor: theme.category === 'dark' ? '#1e293b' : '#f1f5f9',
-              borderColor: theme.palette.border,
-              color: theme.palette.text,
-            }}
+            onFocus={triggerHover}
+            onBlur={clearHover}
+            className={`w-5 h-5 min-w-[20px] min-h-[20px] rounded flex items-center justify-center text-xs transition active:scale-90 cursor-pointer border shrink-0 ${uiClasses.buttonSecondary}`}
             title="値を増やす"
-            aria-label="値を増やす"
+            aria-label={`${label}の値を増やす`}
           >
             <Plus className="w-2.5 h-2.5" />
           </button>
@@ -144,8 +149,8 @@ export const SliderControl: React.FC<SliderControlProps> = ({
           step={step}
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value))}
-          onFocus={() => onHoverToken && propertyKey && onHoverToken(propertyKey)}
-          onBlur={() => onHoverToken && onHoverToken(undefined)}
+          onFocus={triggerHover}
+          onBlur={clearHover}
           className="w-full h-2 rounded-lg appearance-none cursor-pointer"
           style={{
             accentColor: theme.palette.primary,
@@ -169,6 +174,8 @@ export const SliderControl: React.FC<SliderControlProps> = ({
                 key={qv}
                 type="button"
                 onClick={() => onChange(qv)}
+                onFocus={triggerHover}
+                onBlur={clearHover}
                 className="px-1.5 py-0.5 rounded text-[10px] font-mono transition cursor-pointer border"
                 style={{
                   backgroundColor: isCurrent ? theme.palette.primary : (theme.category === 'dark' ? '#1e293b' : '#f1f5f9'),

@@ -24,7 +24,9 @@ import {
   generateGradientCss, 
   generateGradientInline, 
   generateGradientTailwind, 
-  generateGradientValue 
+  generateGradientValue,
+  isValidHexColor,
+  normalizeHexColor,
 } from '../../utils/cssGenerators';
 import { useTheme } from '../../context/ThemeContext';
 import { getUIStyleClasses } from '../../utils/uiStyles';
@@ -176,13 +178,15 @@ const TIPS = [
 ];
 
 export const GradientLab: React.FC = () => {
-  const { uiStyle } = useTheme();
-  const uiClasses = getUIStyleClasses(uiStyle);
+  const { theme, uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle, theme);
   const [state, setState] = useState<GradientState>(INITIAL_STATE);
   const [highlightedProp, setHighlightedProp] = useState<string | undefined>();
-  const [activePreset, setActivePreset] = useState<string>('sunset');
+  const [activePreset, setActivePreset] = useState<string | undefined>('sunset');
   const [layout, setLayout] = useState<PreviewLayout>('side');
   const [isSticky, setIsSticky] = useState<boolean>(true);
+  const [rawInputs, setRawInputs] = useState<Record<string, string>>({});
+  const [colorErrors, setColorErrors] = useState<Record<string, boolean>>({});
 
   // Pure functions for CSS & Tailwind string generation
   const gradientValue = generateGradientValue(state);
@@ -192,7 +196,7 @@ export const GradientLab: React.FC = () => {
 
   const updateStateValue = (updater: (prev: GradientState) => GradientState) => {
     setState(updater);
-    setActivePreset('custom');
+    setActivePreset(undefined);
   };
 
   // Add a new color stop
@@ -220,9 +224,8 @@ export const GradientLab: React.FC = () => {
       stops: prev.stops.map((s) => {
         if (s.id !== id) return s;
         let color = updates.color !== undefined ? updates.color : s.color;
-        // Basic hex sanitization for color input
-        if (updates.color && !updates.color.startsWith('#') && /^[0-9A-Fa-f]{3,6}$/.test(updates.color)) {
-          color = `#${updates.color}`;
+        if (updates.color && isValidHexColor(updates.color)) {
+          color = normalizeHexColor(updates.color);
         }
         return {
           ...s,
@@ -233,13 +236,42 @@ export const GradientLab: React.FC = () => {
     }));
   };
 
-  const handleApplyPreset = (presetState: Partial<GradientState>) => {
+  const handleHexInputChange = (id: string, text: string) => {
+    setRawInputs((prev) => ({ ...prev, [id]: text }));
+    if (isValidHexColor(text)) {
+      setColorErrors((prev) => ({ ...prev, [id]: false }));
+      const normalized = normalizeHexColor(text);
+      handleUpdateStop(id, { color: normalized });
+    } else {
+      setColorErrors((prev) => ({ ...prev, [id]: true }));
+    }
+  };
+
+  const handleHexInputBlur = (id: string, currentColor: string) => {
+    const raw = rawInputs[id];
+    if (raw !== undefined && !isValidHexColor(raw)) {
+      // Revert to current valid color
+      setRawInputs((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setColorErrors((prev) => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleApplyPreset = (presetState: Partial<GradientState>, presetId?: string) => {
     setState((prev) => ({ ...prev, ...presetState }));
+    setActivePreset(presetId);
+    setRawInputs({});
+    setColorErrors({});
   };
 
   const handleReset = () => {
     setState(INITIAL_STATE);
     setActivePreset('sunset');
+    setRawInputs({});
+    setColorErrors({});
   };
 
   const renderControlPanel = () => (
@@ -349,16 +381,25 @@ export const GradientLab: React.FC = () => {
                 </span>
                 <input
                   type="color"
-                  value={st.color.startsWith('#') ? st.color : '#38bdf8'}
-                  onChange={(e) => handleUpdateStop(st.id, { color: e.target.value })}
-                  className="w-7 h-7 rounded bg-transparent cursor-pointer border border-slate-700"
+                  value={st.color.startsWith('#') && st.color.length === 7 ? st.color : '#38bdf8'}
+                  onChange={(e) => {
+                    handleUpdateStop(st.id, { color: e.target.value });
+                    setRawInputs((prev) => ({ ...prev, [st.id]: e.target.value }));
+                    setColorErrors((prev) => ({ ...prev, [st.id]: false }));
+                  }}
+                  className="w-7 h-7 rounded bg-transparent cursor-pointer border border-slate-700 shrink-0"
+                  aria-label={`色 ${idx + 1} のカラーピッカー`}
                 />
                 <input
                   type="text"
-                  value={st.color}
-                  onChange={(e) => handleUpdateStop(st.id, { color: e.target.value })}
-                  className="w-20 px-1.5 py-0.5 text-xs font-mono bg-slate-900 border border-slate-700 rounded text-slate-200"
+                  value={rawInputs[st.id] !== undefined ? rawInputs[st.id] : st.color}
+                  onChange={(e) => handleHexInputChange(st.id, e.target.value)}
+                  onBlur={() => handleHexInputBlur(st.id, st.color)}
+                  className={`w-20 px-1.5 py-0.5 text-xs font-mono bg-slate-900 border rounded text-slate-200 transition ${
+                    colorErrors[st.id] ? 'border-rose-500 ring-1 ring-rose-500/50' : 'border-slate-700 focus:border-sky-500'
+                  }`}
                   placeholder="#ffffff"
+                  aria-label={`色 ${idx + 1} の16進カラーコード`}
                 />
               </div>
 

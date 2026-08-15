@@ -141,11 +141,11 @@ const TIPS = [
 ];
 
 export const FilterLab: React.FC = () => {
-  const { uiStyle } = useTheme();
-  const uiClasses = getUIStyleClasses(uiStyle);
+  const { theme, uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle, theme);
   const [state, setState] = useState<FilterState>(INITIAL_STATE);
   const [highlightedProp, setHighlightedProp] = useState<string | undefined>();
-  const [activePreset, setActivePreset] = useState<string>('natural');
+  const [activePreset, setActivePreset] = useState<string | undefined>('natural');
   const [stageBg, setStageBg] = useState<'dark' | 'slate' | 'light'>('dark');
   const [showOriginal, setShowOriginal] = useState<boolean>(false);
   const [layout, setLayout] = useState<PreviewLayout>('side');
@@ -158,8 +158,9 @@ export const FilterLab: React.FC = () => {
   const inlineCss = generateFilterInline(state);
   const tailwindTip = generateFilterTailwind(state);
 
-  const handleApplyPreset = (presetState: Partial<FilterState>) => {
+  const handleApplyPreset = (presetState: Partial<FilterState>, presetId?: string) => {
     setState((prev) => ({ ...prev, ...presetState }));
+    setActivePreset(presetId);
   };
 
   const handleReset = () => {
@@ -169,7 +170,7 @@ export const FilterLab: React.FC = () => {
 
   const updateStateValue = (updater: (prev: FilterState) => FilterState) => {
     setState(updater);
-    setActivePreset('custom');
+    setActivePreset(undefined);
   };
 
   const renderControlPanel = () => (

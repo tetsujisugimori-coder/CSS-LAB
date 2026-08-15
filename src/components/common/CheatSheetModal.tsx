@@ -1,10 +1,14 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { X, BookOpen, ExternalLink, Code2, Sparkles, Layers } from 'lucide-react';
+import { LabType } from '../../types';
+import { Modal } from './Modal';
+import { useTheme } from '../../context/ThemeContext';
+import { getUIStyleClasses } from '../../utils/uiStyles';
 
 interface CheatSheetModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectLab: (labId: any) => void;
+  onSelectLab: (labId: LabType) => void;
 }
 
 export const CheatSheetModal: React.FC<CheatSheetModalProps> = ({
@@ -12,19 +16,17 @@ export const CheatSheetModal: React.FC<CheatSheetModalProps> = ({
   onClose,
   onSelectLab,
 }) => {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  const { theme, uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle, theme);
 
-  if (!isOpen) return null;
-
-  const sheets = [
+  const sheets: {
+    id: LabType;
+    title: string;
+    property: string;
+    syntax: string;
+    summary: string;
+    commonValues: string[];
+  }[] = [
     {
       id: 'border-radius',
       title: '1. Border Radius (角丸)',
@@ -46,7 +48,7 @@ export const CheatSheetModal: React.FC<CheatSheetModalProps> = ({
       title: '3. Transform (2D変形・配置)',
       property: 'transform',
       syntax: 'transform: translate(x, y) rotate(deg) scale(n) skew(x, y);',
-      summary: 'レイアウトの流れ（他の要素の位置）を変えずに、GPU描画で視覚的に回転・拡縮・移動・歪みを加えます。',
+      summary: 'レイアウトの流れを変えずに、GPU描画で視覚的に回転・拡縮・移動・歪みを加えます。',
       commonValues: ['translateY(-4px) (ホバー時の浮き上がり)', 'scale(1.05) (拡大ズーム)', 'rotate(45deg) (回転)'],
     },
     {
@@ -68,97 +70,120 @@ export const CheatSheetModal: React.FC<CheatSheetModalProps> = ({
   ];
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="cheatsheet-title"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="cheatsheet-title"
+      maxWidthClass="max-w-4xl"
     >
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
-        {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900/95 backdrop-blur z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30">
-              <BookOpen className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 id="cheatsheet-title" className="text-base sm:text-lg font-bold text-white">
-                CSS LAB 早見表 & チートシート
-              </h2>
-              <p className="text-xs text-slate-400">
-                5つの主要プロパティの構文とよく使う値を一覧で確認 (Escキーで閉じる)
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="モーダルを閉じる"
-            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer"
+      {/* Modal Header */}
+      <div className={`p-4 sm:p-5 border-b flex items-center justify-between sticky top-0 backdrop-blur z-10 ${uiClasses.header}`}>
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 font-bold"
+            style={{
+              backgroundColor: theme.category === 'dark' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(79, 70, 229, 0.15)',
+              color: theme.palette.primary,
+              borderColor: theme.palette.border,
+            }}
           >
-            <X className="w-4 h-4" />
-          </button>
+            <BookOpen className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 id="cheatsheet-title" className="text-base sm:text-lg font-bold" style={{ color: theme.palette.text }}>
+              CSS LAB 早見表 & チートシート
+            </h2>
+            <p className="text-xs text-slate-400">
+              5つの主要プロパティの構文とよく使う値を一覧で確認 (Escキーで閉じる)
+            </p>
+          </div>
         </div>
+        <button
+          onClick={onClose}
+          aria-label="モーダルを閉じる"
+          className={`w-8 h-8 flex items-center justify-center transition cursor-pointer ${uiClasses.buttonSecondary}`}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
 
-        {/* Modal Body */}
-        <div className="p-4 sm:p-6 space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            {sheets.map((s) => (
-              <div
-                key={s.id}
-                className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 hover:border-slate-700 transition"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                  <h3 className="text-sm font-bold text-sky-300 flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    {s.title}
+      {/* Modal Scrollable Content */}
+      <div className="p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[calc(90vh-130px)]">
+        <div className="grid grid-cols-1 gap-4">
+          {sheets.map((sheet) => (
+            <div
+              key={sheet.id}
+              className={`p-4 sm:p-5 transition-all ${uiClasses.subCard}`}
+            >
+              <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2 py-0.5 font-bold ${uiClasses.badge}`}>
+                    {sheet.property}
+                  </span>
+                  <h3 className="font-bold text-sm sm:text-base" style={{ color: theme.palette.text }}>
+                    {sheet.title}
                   </h3>
-                  <button
-                    onClick={() => {
-                      onSelectLab(s.id);
-                      onClose();
-                    }}
-                    className="self-start sm:self-auto px-2.5 py-1 rounded bg-sky-950 hover:bg-sky-900 text-sky-300 text-xs font-semibold border border-sky-800/60 flex items-center gap-1 transition cursor-pointer"
-                  >
-                    <span>この実験室を開く</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </button>
                 </div>
 
-                <p className="text-xs text-slate-300 mb-2.5 leading-relaxed">
-                  {s.summary}
-                </p>
+                <button
+                  onClick={() => {
+                    onSelectLab(sheet.id);
+                    onClose();
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold transition cursor-pointer ${uiClasses.button}`}
+                >
+                  <span>この実験室を開く</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+              </div>
 
-                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800 mb-2 font-mono text-xs text-emerald-400 overflow-x-auto">
-                  <code>{s.syntax}</code>
+              <p className="text-xs leading-relaxed mb-3 text-slate-400">
+                {sheet.summary}
+              </p>
+
+              {/* Code syntax */}
+              <div className="mb-3">
+                <div className="text-[11px] font-mono text-slate-400 mb-1 flex items-center gap-1">
+                  <Code2 className="w-3 h-3" style={{ color: theme.palette.primary }} />
+                  <span>基本構文:</span>
                 </div>
+                <div
+                  className="p-2.5 rounded-lg border font-mono text-xs overflow-x-auto"
+                  style={{
+                    backgroundColor: theme.category === 'dark' ? '#020617' : '#f8fafc',
+                    borderColor: theme.palette.border,
+                    color: theme.palette.primary,
+                  }}
+                >
+                  <code>{sheet.syntax}</code>
+                </div>
+              </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] text-slate-400 font-bold">代表的な値:</span>
-                  {s.commonValues.map((v, i) => (
+              {/* Common Values */}
+              <div>
+                <span className="text-[11px] text-slate-400 block mb-1.5">
+                  よく使われる値のパターン:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {sheet.commonValues.map((val, idx) => (
                     <span
-                      key={i}
-                      className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700/60"
+                      key={idx}
+                      className="text-[11px] px-2 py-0.5 rounded border font-mono"
+                      style={{
+                        backgroundColor: theme.category === 'dark' ? '#0f172a' : '#f1f5f9',
+                        borderColor: theme.palette.border,
+                        color: theme.palette.text,
+                      }}
                     >
-                      {v}
+                      {val}
                     </span>
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/60 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-md shadow-sky-500/20 cursor-pointer"
-          >
-            閉じる (Esc)
-          </button>
+            </div>
+          ))}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

@@ -132,11 +132,11 @@ const TIPS = [
 ];
 
 export const BoxShadowLab: React.FC = () => {
-  const { uiStyle } = useTheme();
-  const uiClasses = getUIStyleClasses(uiStyle);
+  const { theme, uiStyle } = useTheme();
+  const uiClasses = getUIStyleClasses(uiStyle, theme);
   const [state, setState] = useState<BoxShadowState>(INITIAL_STATE);
   const [highlightedProp, setHighlightedProp] = useState<string | undefined>();
-  const [activePreset, setActivePreset] = useState<string>('soft');
+  const [activePreset, setActivePreset] = useState<string | undefined>();
   const [stageBg, setStageBg] = useState<'dark' | 'light' | 'slate'>('dark');
   const [layout, setLayout] = useState<PreviewLayout>('side');
   const [isSticky, setIsSticky] = useState<boolean>(true);
@@ -148,18 +148,19 @@ export const BoxShadowLab: React.FC = () => {
   const fullShadowValue = generateBoxShadowValue(state);
   const shadowColorStr = hexToRgba(state.color, state.opacity / 100);
 
-  const handleApplyPreset = (presetState: Partial<BoxShadowState>) => {
+  const handleApplyPreset = (presetState: Partial<BoxShadowState>, presetId?: string) => {
     setState((prev) => ({ ...prev, ...presetState }));
+    setActivePreset(presetId);
   };
 
   const handleReset = () => {
     setState(INITIAL_STATE);
-    setActivePreset('soft');
+    setActivePreset(undefined);
   };
 
   const updateStateValue = (updater: (prev: BoxShadowState) => BoxShadowState) => {
     setState(updater);
-    setActivePreset('custom');
+    setActivePreset(undefined);
   };
 
   const renderControlPanel = () => (
