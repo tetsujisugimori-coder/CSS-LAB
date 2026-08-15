@@ -59,9 +59,11 @@ export const CodePanel: React.FC<CodePanelProps> = ({
   const isTokenHighlighted = (key?: string) => {
     if (!key || !highlightedToken) return false;
     if (key === highlightedToken) return true;
-    if (key === 'translate' && (highlightedToken === 'translateX' || highlightedToken === 'translateY')) return true;
-    if (key === 'skew' && (highlightedToken === 'skewX' || highlightedToken === 'skewY')) return true;
+    if (key === 'translate' && (highlightedToken === 'translateX' || highlightedToken === 'translateY' || highlightedToken === 'translate')) return true;
+    if (key === 'skew' && (highlightedToken === 'skewX' || highlightedToken === 'skewY' || highlightedToken === 'skew')) return true;
     if (key === 'scale' && (highlightedToken === 'scale' || highlightedToken === 'scaleX' || highlightedToken === 'scaleY')) return true;
+    if ((key === 'transform-origin' || key === 'origin') && (highlightedToken === 'transform-origin' || highlightedToken === 'origin')) return true;
+    if ((key === 'hue-rotate' || key === 'hueRotate') && (highlightedToken === 'hue-rotate' || highlightedToken === 'hueRotate')) return true;
     return false;
   };
 
@@ -161,10 +163,9 @@ export const CodePanel: React.FC<CodePanelProps> = ({
           <button
             type="button"
             onClick={copyToClipboard}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer select-none ${uiClasses.button}`}
-            style={{
-              backgroundColor: copied ? '#10b981' : undefined,
-            }}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer select-none ${
+              copied ? uiClasses.buttonSuccess : uiClasses.button
+            }`}
             title="CSSコードをクリップボードにコピー"
           >
             {copied ? (
@@ -197,12 +198,7 @@ export const CodePanel: React.FC<CodePanelProps> = ({
                     key={idx}
                     onMouseEnter={() => onHoverToken?.(tok.tokenKey)}
                     onMouseLeave={() => onHoverToken?.(undefined)}
-                    onFocus={() => onHoverToken?.(tok.tokenKey)}
-                    onBlur={() => onHoverToken?.(undefined)}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`プロパティ ${tok.tokenKey} をハイライト`}
-                    className={`rounded px-1 transition cursor-pointer outline-none ${
+                    className={`rounded px-1 transition cursor-pointer select-none ${
                       active
                         ? 'ring-2 ring-sky-400 bg-sky-500/25 font-bold text-sky-300'
                         : 'hover:bg-slate-700/30'
@@ -260,7 +256,7 @@ export const CodePanel: React.FC<CodePanelProps> = ({
           color: theme.category === 'dark' ? '#94a3b8' : '#64748b',
         }}
       >
-        <span>💡 スライダーやコードの各要素をホバーすると対応箇所がハイライトされます</span>
+        <span>💡 コード内のプロパティにマウスを重ねると、対応する操作項目がハイライトされます</span>
         {highlightedToken && (
           <span className="font-bold font-mono" style={{ color: theme.palette.primary }}>
             選択中: {highlightedToken}

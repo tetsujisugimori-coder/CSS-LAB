@@ -194,42 +194,46 @@ export const QuizModal: React.FC<QuizModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      titleId="quiz-modal-title"
-      maxWidthClass="max-w-xl"
+      title="CSS理解度チェッククイズ"
+      subtitle="実験室で学んだCSSプロパティの知識をテストしてみよう (Escキーで閉じる)"
+      icon={<Trophy className="w-4 h-4" />}
+      maxWidth="xl"
+      footer={
+        !isCompleted ? (
+          <div className="w-full flex justify-end">
+            {selectedOption !== null && (
+              <button
+                type="button"
+                onClick={handleNext}
+                className={`px-4 py-2 text-xs font-bold transition shadow-md flex items-center gap-1.5 cursor-pointer ${uiClasses.button}`}
+              >
+                <span>{currentIdx + 1 === QUIZ_DATA.length ? '結果を見る' : '次の問題へ'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="w-full flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={handleRestart}
+              className={`px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${uiClasses.buttonSecondary}`}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>もう一度挑戦する</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className={`px-4 py-2 text-xs font-bold transition cursor-pointer shadow-md ${uiClasses.button}`}
+            >
+              実験室に戻る
+            </button>
+          </div>
+        )
+      }
     >
-      {/* Header */}
-      <div className={`p-4 sm:p-5 border-b flex items-center justify-between sticky top-0 backdrop-blur z-10 ${uiClasses.header}`}>
-        <div className="flex items-center gap-2.5">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center border font-bold"
-            style={{
-              backgroundColor: theme.category === 'dark' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(79, 70, 229, 0.15)',
-              color: theme.palette.primary,
-              borderColor: theme.palette.border,
-            }}
-          >
-            <Trophy className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 id="quiz-modal-title" className="text-base font-bold" style={{ color: theme.palette.text }}>
-              CSS理解度チェッククイズ
-            </h2>
-            <p className="text-xs text-slate-400">
-              実験室で学んだCSSプロパティの知識をテストしてみよう (Escキーで閉じる)
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          aria-label="モーダルを閉じる"
-          className={`w-8 h-8 flex items-center justify-center transition cursor-pointer ${uiClasses.buttonSecondary}`}
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Quiz Body */}
-      <div className="p-4 sm:p-6 space-y-4 max-h-[calc(90vh-140px)] overflow-y-auto">
+      <div className="space-y-4">
         {!isCompleted ? (
           <>
             {/* Progress bar */}
@@ -350,39 +354,6 @@ export const QuizModal: React.FC<QuizModalProps> = ({
                 ? '素晴らしい！CSSの主要な視覚プロパティの仕組みを完璧にマスターしています！'
                 : '惜しい！各実験室のスライダーを操作して、プロパティの数値変化を再確認してみましょう！'}
             </p>
-          </div>
-        )}
-      </div>
-
-      {/* Footer actions */}
-      <div className={`p-4 border-t flex items-center justify-between ${uiClasses.header}`}>
-        {!isCompleted ? (
-          <div className="w-full flex justify-end">
-            {selectedOption !== null && (
-              <button
-                onClick={handleNext}
-                className={`px-4 py-2 text-xs font-bold transition shadow-md flex items-center gap-1.5 cursor-pointer ${uiClasses.button}`}
-              >
-                <span>{currentIdx + 1 === QUIZ_DATA.length ? '結果を見る' : '次の問題へ'}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="w-full flex items-center justify-between gap-2">
-            <button
-              onClick={handleRestart}
-              className={`px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${uiClasses.buttonSecondary}`}
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>もう一度挑戦する</span>
-            </button>
-            <button
-              onClick={onClose}
-              className={`px-4 py-2 text-xs font-bold transition cursor-pointer shadow-md ${uiClasses.button}`}
-            >
-              実験室に戻る
-            </button>
           </div>
         )}
       </div>

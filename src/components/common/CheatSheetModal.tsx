@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, BookOpen, ExternalLink, Code2, Sparkles, Layers } from 'lucide-react';
+import { BookOpen, ExternalLink, Code2 } from 'lucide-react';
 import { LabType } from '../../types';
 import { Modal } from './Modal';
 import { useTheme } from '../../context/ThemeContext';
@@ -73,116 +73,85 @@ export const CheatSheetModal: React.FC<CheatSheetModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      titleId="cheatsheet-title"
-      maxWidthClass="max-w-4xl"
+      title="CSS LAB 早見表 & チートシート"
+      subtitle="5つの主要プロパティの構文とよく使う値を一覧で確認 (Escキーで閉じる)"
+      icon={<BookOpen className="w-4 h-4" />}
+      maxWidth="4xl"
     >
-      {/* Modal Header */}
-      <div className={`p-4 sm:p-5 border-b flex items-center justify-between sticky top-0 backdrop-blur z-10 ${uiClasses.header}`}>
-        <div className="flex items-center gap-2.5">
+      <div className="grid grid-cols-1 gap-4">
+        {sheets.map((sheet) => (
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 font-bold"
-            style={{
-              backgroundColor: theme.category === 'dark' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(79, 70, 229, 0.15)',
-              color: theme.palette.primary,
-              borderColor: theme.palette.border,
-            }}
+            key={sheet.id}
+            className={`p-4 sm:p-5 transition-all ${uiClasses.subCard}`}
           >
-            <BookOpen className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 id="cheatsheet-title" className="text-base sm:text-lg font-bold" style={{ color: theme.palette.text }}>
-              CSS LAB 早見表 & チートシート
-            </h2>
-            <p className="text-xs text-slate-400">
-              5つの主要プロパティの構文とよく使う値を一覧で確認 (Escキーで閉じる)
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          aria-label="モーダルを閉じる"
-          className={`w-8 h-8 flex items-center justify-center transition cursor-pointer ${uiClasses.buttonSecondary}`}
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Modal Scrollable Content */}
-      <div className="p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[calc(90vh-130px)]">
-        <div className="grid grid-cols-1 gap-4">
-          {sheets.map((sheet) => (
-            <div
-              key={sheet.id}
-              className={`p-4 sm:p-5 transition-all ${uiClasses.subCard}`}
-            >
-              <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs px-2 py-0.5 font-bold ${uiClasses.badge}`}>
-                    {sheet.property}
-                  </span>
-                  <h3 className="font-bold text-sm sm:text-base" style={{ color: theme.palette.text }}>
-                    {sheet.title}
-                  </h3>
-                </div>
-
-                <button
-                  onClick={() => {
-                    onSelectLab(sheet.id);
-                    onClose();
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold transition cursor-pointer ${uiClasses.button}`}
-                >
-                  <span>この実験室を開く</span>
-                  <ExternalLink className="w-3 h-3" />
-                </button>
-              </div>
-
-              <p className="text-xs leading-relaxed mb-3 text-slate-400">
-                {sheet.summary}
-              </p>
-
-              {/* Code syntax */}
-              <div className="mb-3">
-                <div className="text-[11px] font-mono text-slate-400 mb-1 flex items-center gap-1">
-                  <Code2 className="w-3 h-3" style={{ color: theme.palette.primary }} />
-                  <span>基本構文:</span>
-                </div>
-                <div
-                  className="p-2.5 rounded-lg border font-mono text-xs overflow-x-auto"
-                  style={{
-                    backgroundColor: theme.category === 'dark' ? '#020617' : '#f8fafc',
-                    borderColor: theme.palette.border,
-                    color: theme.palette.primary,
-                  }}
-                >
-                  <code>{sheet.syntax}</code>
-                </div>
-              </div>
-
-              {/* Common Values */}
-              <div>
-                <span className="text-[11px] text-slate-400 block mb-1.5">
-                  よく使われる値のパターン:
+            <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
+              <div className="flex items-center gap-2">
+                <span className={`text-xs px-2 py-0.5 font-bold ${uiClasses.badge}`}>
+                  {sheet.property}
                 </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {sheet.commonValues.map((val, idx) => (
-                    <span
-                      key={idx}
-                      className="text-[11px] px-2 py-0.5 rounded border font-mono"
-                      style={{
-                        backgroundColor: theme.category === 'dark' ? '#0f172a' : '#f1f5f9',
-                        borderColor: theme.palette.border,
-                        color: theme.palette.text,
-                      }}
-                    >
-                      {val}
-                    </span>
-                  ))}
-                </div>
+                <h3 className="font-bold text-sm sm:text-base" style={{ color: theme.palette.text }}>
+                  {sheet.title}
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectLab(sheet.id);
+                  onClose();
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold transition cursor-pointer ${uiClasses.button}`}
+              >
+                <span>この実験室を開く</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+
+            <p className="text-xs leading-relaxed mb-3 text-slate-400">
+              {sheet.summary}
+            </p>
+
+            {/* Code syntax */}
+            <div className="mb-3">
+              <div className="text-[11px] font-mono text-slate-400 mb-1 flex items-center gap-1">
+                <Code2 className="w-3 h-3" style={{ color: theme.palette.primary }} />
+                <span>基本構文:</span>
+              </div>
+              <div
+                className="p-2.5 rounded-lg border font-mono text-xs overflow-x-auto"
+                style={{
+                  backgroundColor: theme.category === 'dark' ? '#020617' : '#f8fafc',
+                  borderColor: theme.palette.border,
+                  color: theme.palette.primary,
+                }}
+              >
+                <code>{sheet.syntax}</code>
               </div>
             </div>
-          ))}
-        </div>
+
+            {/* Common Values */}
+            <div>
+              <span className="text-[11px] text-slate-400 block mb-1.5">
+                よく使われる値のパターン:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {sheet.commonValues.map((val, idx) => (
+                  <span
+                    key={idx}
+                    className="text-[11px] px-2 py-0.5 rounded border font-mono"
+                    style={{
+                      backgroundColor: theme.category === 'dark' ? '#0f172a' : '#f1f5f9',
+                      borderColor: theme.palette.border,
+                      color: theme.palette.text,
+                    }}
+                  >
+                    {val}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </Modal>
   );

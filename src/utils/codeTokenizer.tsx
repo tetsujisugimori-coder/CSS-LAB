@@ -27,57 +27,87 @@ export function tokenizeCss(css: string): (string | { text: string; tokenKey: st
       tokens.push('\n');
     }
 
-    // transform: translate(...) rotate(...) scale(...) skew(...)
-    if (line.includes('transform:') || line.includes('transform-origin:')) {
-      const parts = line.split(/(transform-origin|translateY|translateX|translate|rotate|scale|skewX|skewY|skew)\s*\(([^)]*)\)/g);
-      for (let i = 0; i < parts.length; i++) {
-        const p = parts[i];
-        if (['translate', 'translateX', 'translateY', 'rotate', 'scale', 'skew', 'skewX', 'skewY', 'transform-origin'].includes(p)) {
-          const args = parts[i + 1] || '';
-          tokens.push({
-            text: `${p}(${args})`,
-            tokenKey: p === 'translate' ? 'translate' : p === 'skew' ? 'skew' : p,
-          });
-          i++; // skip args
-        } else if (p) {
-          // Check for transform property key
-          if (p.includes('transform:')) {
-            const sub = p.split('transform:');
-            tokens.push(sub[0]);
-            tokens.push({ text: 'transform', tokenKey: 'transform' });
-            tokens.push(':');
-            tokens.push(sub[1] || '');
-          } else {
-            tokens.push(p);
-          }
+    // transform-origin: ...
+    if (line.includes('transform-origin:')) {
+      const parts = line.split('transform-origin:');
+      if (parts[0]) tokens.push(parts[0]);
+      tokens.push({ text: 'transform-origin', tokenKey: 'transform-origin' });
+      tokens.push(':');
+      if (parts[1]) {
+        const rawVal = parts[1];
+        const trimmed = rawVal.trim();
+        const hasSemi = trimmed.endsWith(';');
+        const valContent = hasSemi ? trimmed.slice(0, -1).trim() : trimmed;
+        if (rawVal.startsWith(' ')) tokens.push(' ');
+        if (valContent) {
+          tokens.push({ text: valContent, tokenKey: 'transform-origin' });
         }
+        if (hasSemi) tokens.push(';');
+      }
+      return;
+    }
+
+    // transform: translate(...) rotate(...) scale(...) skew(...)
+    if (line.includes('transform:')) {
+      const parts = line.split('transform:');
+      if (parts[0]) tokens.push(parts[0]);
+      tokens.push({ text: 'transform', tokenKey: 'transform' });
+      tokens.push(':');
+
+      const rest = parts[1] || '';
+      const fnRegex = /(translateX|translateY|translate|rotate|scaleX|scaleY|scale|skewX|skewY|skew)\s*\(([^)]*)\)/g;
+      let lastIndex = 0;
+      let match: RegExpExecArray | null;
+
+      while ((match = fnRegex.exec(rest)) !== null) {
+        const textBefore = rest.slice(lastIndex, match.index);
+        if (textBefore) tokens.push(textBefore);
+
+        const fnName = match[1];
+        const fnArgs = match[2];
+        const fullFnText = `${fnName}(${fnArgs})`;
+        tokens.push({
+          text: fullFnText,
+          tokenKey: fnName,
+        });
+        lastIndex = fnRegex.lastIndex;
+      }
+
+      const textAfter = rest.slice(lastIndex);
+      if (textAfter) {
+        tokens.push(textAfter);
       }
       return;
     }
 
     // filter: blur(...) brightness(...) etc.
     if (line.includes('filter:')) {
-      const parts = line.split(/(blur|brightness|contrast|grayscale|saturate|sepia|hue-rotate|invert|opacity)\s*\(([^)]*)\)/g);
-      for (let i = 0; i < parts.length; i++) {
-        const p = parts[i];
-        if (['blur', 'brightness', 'contrast', 'grayscale', 'saturate', 'sepia', 'hue-rotate', 'invert', 'opacity'].includes(p)) {
-          const args = parts[i + 1] || '';
-          tokens.push({
-            text: `${p}(${args})`,
-            tokenKey: p,
-          });
-          i++; // skip args
-        } else if (p) {
-          if (p.includes('filter:')) {
-            const sub = p.split('filter:');
-            tokens.push(sub[0]);
-            tokens.push({ text: 'filter', tokenKey: 'filter' });
-            tokens.push(':');
-            tokens.push(sub[1] || '');
-          } else {
-            tokens.push(p);
-          }
-        }
+      const parts = line.split('filter:');
+      if (parts[0]) tokens.push(parts[0]);
+      tokens.push({ text: 'filter', tokenKey: 'filter' });
+      tokens.push(':');
+
+      const rest = parts[1] || '';
+      const fnRegex = /(blur|brightness|contrast|grayscale|saturate|sepia|hue-rotate|invert|opacity)\s*\(([^)]*)\)/g;
+      let lastIndex = 0;
+      let match: RegExpExecArray | null;
+
+      while ((match = fnRegex.exec(rest)) !== null) {
+        const textBefore = rest.slice(lastIndex, match.index);
+        if (textBefore) tokens.push(textBefore);
+
+        const fnName = match[1];
+        const fnArgs = match[2];
+        tokens.push({
+          text: `${fnName}(${fnArgs})`,
+          tokenKey: fnName === 'hue-rotate' ? 'hue-rotate' : fnName,
+        });
+        lastIndex = fnRegex.lastIndex;
+      }
+
+      const textAfter = rest.slice(lastIndex);
+      if (textAfter) {
+        tokens.push(textAfter);
       }
       return;
     }

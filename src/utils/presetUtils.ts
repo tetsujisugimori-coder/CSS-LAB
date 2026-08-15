@@ -1,4 +1,5 @@
 import { Preset, ColorStop } from '../types';
+import { normalizeHexColor } from './colorUtils';
 
 /**
  * 2つの状態オブジェクトが一致しているかを深く比較する
@@ -25,9 +26,9 @@ export function isStateEqual<T extends Record<string, any>>(current: T, presetSt
           if ('color' in itemP && 'stop' in itemP) {
             const stopP = itemP as ColorStop;
             const stopC = itemC as ColorStop;
-            const normP = (stopP.color || '').trim().toLowerCase();
-            const normC = (stopC.color || '').trim().toLowerCase();
-            if (normP !== normC || stopP.stop !== stopC.stop) {
+            const normP = normalizeHexColor(stopP.color || '');
+            const normC = normalizeHexColor(stopC.color || '');
+            if (!normP || !normC || normP !== normC || stopP.stop !== stopC.stop) {
               return false;
             }
           } else if (JSON.stringify(itemP) !== JSON.stringify(itemC)) {

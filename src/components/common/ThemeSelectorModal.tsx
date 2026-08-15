@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  X, 
   Palette, 
   Check, 
   Moon, 
@@ -8,10 +7,9 @@ import {
   Sparkles, 
   Layers, 
   Sliders, 
-  Eye, 
-  CheckCircle2 
+  Eye 
 } from 'lucide-react';
-import { ThemeId, UIStyle } from '../../types';
+import { UIStyle } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { Modal } from './Modal';
 import { getUIStyleClasses } from '../../utils/uiStyles';
@@ -60,54 +58,41 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      titleId="theme-modal-title"
-      maxWidthClass="max-w-4xl"
-    >
-      {/* Modal Header */}
-      <div className={`p-4 sm:p-5 border-b flex items-center justify-between sticky top-0 backdrop-blur z-10 ${uiClasses.header}`}>
-        <div className="flex items-center gap-3">
-          <div 
-            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg font-bold"
-            style={{ 
-              backgroundColor: theme.palette.primary,
-              color: theme.category === 'dark' ? '#0f172a' : '#ffffff' 
-            }}
+      title="デザインテーマ・セレクター"
+      subtitle="お好みのデザイン候補をクリックするだけで、アプリ全体の配色と質感が瞬時に変わります (Escキーで閉じる)"
+      icon={<Palette className="w-4 h-4" />}
+      maxWidth="4xl"
+      footer={
+        <div className="w-full flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <span className="font-semibold" style={{ color: theme.palette.text }}>現在のテーマ:</span>
+            <span 
+              className="font-bold px-2 py-0.5 rounded"
+              style={{ color: theme.palette.primary, backgroundColor: theme.category === 'dark' ? '#0f172a' : '#f1f5f9' }}
+            >
+              {theme.name}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className={`px-5 py-2 text-xs sm:text-sm font-bold transition shadow-lg cursor-pointer ${uiClasses.button}`}
           >
-            <Palette className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 id="theme-modal-title" className="text-lg sm:text-xl font-bold" style={{ color: theme.palette.text }}>
-                デザインテーマ・セレクター
-              </h2>
-              <span className={`text-xs px-2 py-0.5 font-bold ${uiClasses.badge}`}>
-                6 Themes Available
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              お好みのデザイン候補をクリックするだけで、アプリ全体の配色と質感が瞬時に変わります (Escキーで閉じる)
-            </p>
-          </div>
+            完了（このデザインを適用）
+          </button>
         </div>
-
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          aria-label="モーダルを閉じる"
-          className={`w-8 h-8 flex items-center justify-center transition cursor-pointer ${uiClasses.buttonSecondary}`}
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
+      }
+    >
       {/* Tab Switcher: Themes vs UI Styles */}
       <div 
-        className="px-6 pt-3 border-b flex items-center gap-4 text-xs sm:text-sm font-bold"
+        className="pt-1 pb-3 border-b flex items-center gap-4 text-xs sm:text-sm font-bold"
         style={{ borderColor: theme.palette.border }}
       >
         <button
+          type="button"
           onClick={() => setActiveTab('themes')}
-          className={`pb-2.5 border-b-2 transition flex items-center gap-2 cursor-pointer ${
+          className={`pb-2 border-b-2 transition flex items-center gap-2 cursor-pointer ${
             activeTab === 'themes'
               ? 'border-sky-400 text-sky-400'
               : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -121,8 +106,9 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
           <span>1. カラーテーマ候補 (6種類)</span>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('styles')}
-          className={`pb-2.5 border-b-2 transition flex items-center gap-2 cursor-pointer ${
+          className={`pb-2 border-b-2 transition flex items-center gap-2 cursor-pointer ${
             activeTab === 'styles'
               ? 'border-sky-400 text-sky-400'
               : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -138,7 +124,7 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
       </div>
 
       {/* Modal Body */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 max-h-[calc(90vh-140px)]">
+      <div className="space-y-6">
         
         {/* TAB 1: Theme Presets */}
         {activeTab === 'themes' && (
@@ -333,26 +319,6 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
             </div>
           </div>
         )}
-      </div>
-
-      {/* Modal Footer */}
-      <div className={`p-4 sm:p-5 border-t flex items-center justify-between flex-wrap gap-3 ${uiClasses.header}`}>
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <span className="font-semibold" style={{ color: theme.palette.text }}>現在のテーマ:</span>
-          <span 
-            className="font-bold px-2 py-0.5 rounded"
-            style={{ color: theme.palette.primary, backgroundColor: theme.category === 'dark' ? '#0f172a' : '#f1f5f9' }}
-          >
-            {theme.name}
-          </span>
-        </div>
-
-        <button
-          onClick={onClose}
-          className={`px-5 py-2 text-xs sm:text-sm font-bold transition shadow-lg cursor-pointer ${uiClasses.button}`}
-        >
-          完了（このデザインを適用）
-        </button>
       </div>
     </Modal>
   );

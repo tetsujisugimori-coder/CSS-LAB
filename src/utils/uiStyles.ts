@@ -5,6 +5,7 @@ export interface StyleClasses {
   subCard: string;
   button: string;
   buttonSecondary: string;
+  buttonSuccess: string;
   badge: string;
   header: string;
   input: string;
@@ -30,6 +31,9 @@ export function getUIStyleClasses(style: UIStyle, theme?: ThemeConfig): StyleCla
         buttonSecondary: isDark
           ? 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-xl'
           : 'bg-black/5 hover:bg-black/10 text-slate-700 border border-black/10 rounded-xl',
+        buttonSuccess: isDark
+          ? 'bg-emerald-500/30 hover:bg-emerald-500/40 text-emerald-100 backdrop-blur-md border border-emerald-400/40 rounded-xl shadow-md transition-all active:scale-95'
+          : 'bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-900 backdrop-blur-md border border-emerald-600/30 rounded-xl shadow-sm transition-all active:scale-95',
         badge: isDark
           ? 'bg-white/15 text-sky-200 border border-white/20 rounded-full backdrop-blur-sm'
           : 'bg-slate-900/10 text-slate-800 border border-slate-900/15 rounded-full backdrop-blur-sm',
@@ -61,6 +65,9 @@ export function getUIStyleClasses(style: UIStyle, theme?: ThemeConfig): StyleCla
         buttonSecondary: isDark
           ? 'bg-slate-800 hover:bg-slate-700 text-white font-bold border-2 border-slate-400 shadow-[2px_2px_0px_#38bdf8] rounded-none'
           : 'bg-white hover:bg-slate-100 text-black font-bold border-2 border-black shadow-[2px_2px_0px_#000] rounded-none',
+        buttonSuccess: isDark
+          ? 'bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black border-2 border-white shadow-[3px_3px_0px_#fff] rounded-none transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none'
+          : 'bg-emerald-400 hover:bg-emerald-500 text-black font-black border-2 border-black shadow-[3px_3px_0px_#000] rounded-none transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none',
         badge: isDark
           ? 'bg-amber-400 text-slate-950 font-black border-2 border-white shadow-[2px_2px_0px_#fff] rounded-none'
           : 'bg-amber-300 text-black font-black border-2 border-black shadow-[2px_2px_0px_#000] rounded-none',
@@ -92,6 +99,9 @@ export function getUIStyleClasses(style: UIStyle, theme?: ThemeConfig): StyleCla
         buttonSecondary: isDark
           ? 'bg-transparent hover:bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800 rounded-md'
           : 'bg-transparent hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 rounded-md',
+        buttonSuccess: isDark
+          ? 'bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-700 rounded-md shadow-none transition-all active:scale-95'
+          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md shadow-none transition-all active:scale-95',
         badge: isDark
           ? 'bg-slate-900 text-slate-400 border border-slate-800 rounded-sm font-mono text-[10px]'
           : 'bg-slate-100 text-slate-600 border border-slate-200 rounded-sm font-mono text-[10px]',
@@ -124,6 +134,9 @@ export function getUIStyleClasses(style: UIStyle, theme?: ThemeConfig): StyleCla
         buttonSecondary: isDark
           ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl'
           : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 rounded-xl',
+        buttonSuccess: isDark
+          ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-md shadow-emerald-500/20 transition-all active:scale-95'
+          : 'bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md shadow-emerald-600/20 transition-all active:scale-95',
         badge: isDark
           ? 'bg-sky-950 text-sky-400 border border-sky-900/60 rounded-md font-mono'
           : 'bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md font-mono',
